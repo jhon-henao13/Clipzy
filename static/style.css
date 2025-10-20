@@ -20,9 +20,85 @@ input::placeholder {
   color: #9ca3af; /* gray-400 */
 }
 
-
 footer {
-    position: absolute;
-    top: 75%;
-    font-weight: 500;
+  font-weight: 500;
+  padding: 1.5rem 0; /* Espaciado consistente */
+  background-color: rgba(0, 0, 0, 0.5); /* Fondo semitransparente */
+  z-index: 10; /* Asegura que esté encima de las partículas */
+}
+
+/* Ajustar el contenedor principal para pantallas pequeñas */
+main {
+  flex-grow: 1; /* Ocupa el espacio disponible */
+  padding: 1.5rem; /* Ajuste para pantallas pequeñas */
+  min-height: auto; /* Elimina min-height para evitar desbordamiento */
+}
+
+/* Asegurar que la vista previa sea responsiva */
+#result {
+  max-width: 100%; /* Evita desbordamiento */
+  margin: 0 auto;
+}
+
+#result img {
+  max-width: 100%; /* Evita que la imagen desborde */
+  height: auto; /* Mantiene proporciones */
+  max-height: 200px; /* Limita la altura para evitar que empuje el footer */
+}
+
+/* Ajustar el contenedor de anuncios */
+.my-6 {
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+  max-width: 100%; /* Evita desbordamiento en pantallas pequeñas */
+}
+
+/* Estilo para el ícono de GitHub */
+.fa-brands.fa-github {
+  font-size: 1.2rem; /* Tamaño del ícono */
+  vertical-align: middle; /* Alinea con el texto */
+}
+
+/* Estilo para el botón de PayPal */
+a[href*="paypal.com"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem; /* Tamaño consistente */
+}
+
+/* Ajuste para el logo en pantallas pequeñas */
+.logo-container img {
+  max-width: 100px; /* Limita el tamaño del logo */
+}
+
+/* Asegurar que el botón de instalar PWA no cubra el footer */
+#installButton {
+  z-index: 20; /* Encima de otros elementos */
+}
+
+
+.mr-1 {
+    margin-left: 0.5rem;
+}
+
+
+/* Media queries para pantallas pequeñas */
+@media (max-width: 640px) {
+  main {
+    padding: 1rem;
+  }
+  .logo-container {
+    flex-direction: column; /* Apila el logo y el título en móviles */
+    gap: 0.25rem;
+  }
+  .logo-container img {
+    width: 80px;
+  }
+  h1 {
+    font-size: 2.5rem; /* Reduce el tamaño del título */
+  }
+  #result {
+    padding-bottom: 1rem; /* Espacio adicional para evitar solapamiento */
+  }
 }

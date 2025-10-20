@@ -54,13 +54,14 @@ def download_video():
         'outtmpl': os.path.join(DOWNLOAD_FOLDER, '%(title)s.%(ext)s'),
         'quiet': True,
         'http_headers': {
-            'User-Agent': random.choice(user_agents),  # Rotación de User-Agent
+            'User-Agent': random.choice(user_agents),
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.5',
             'Referer': 'https://www.youtube.com/',
         },
-        'retries': 3,  # Reintentar hasta 3 veces si falla
+        'retries': 3,
         'fragment_retries': 3,
+        'extractor_retries': 3,  # Añadido para reintentos en extractores
         'ignoreerrors': False,
     }
 
@@ -94,10 +95,10 @@ def download_video():
 
     except Exception as e:
         error_message = str(e)
-        # Personalizar mensaje para errores de autenticación
         if "Sign in to confirm you’re not a bot" in error_message:
-            error_message = "Este video requiere inicio de sesión o está restringido por YouTube. Prueba con otro video público."
+            error_message = "Este video requiere inicio de sesión o está restringido por YouTube. Prueba con un video público o enlaces de TikTok, Instagram o Pinterest."
         return jsonify({"error": error_message}), 500
+
 
 @app.route('/download/<filename>')
 def download_file(filename):
@@ -125,6 +126,17 @@ def initialize_counter():
     if not os.path.exists(counter_file):
         with open(counter_file, 'w') as f:
             f.write("0")
+
+
+@app.route('/terms')
+def terms():
+    return render_template('terms.html')
+
+@app.route('/privacy')
+def privacy():
+    return render_template('privacy.html')
+
+
 
 if __name__ == '__main__':
     initialize_counter()
