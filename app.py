@@ -41,6 +41,15 @@ def download_video():
     ydl_opts = {
         'outtmpl': os.path.join(DOWNLOAD_FOLDER, '%(title)s.%(ext)s'),
         'quiet': True,
+        'http_headers': {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Referer': 'https://www.youtube.com/',
+        },
+        'retries': 3,  # Reintentar hasta 3 veces si falla
+        'fragment_retries': 3,
+        'ignoreerrors': False,
     }
 
     if format_type == 'audio':
@@ -74,16 +83,11 @@ def download_video():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
 @app.route('/download/<filename>')
 def download_file(filename):
     return send_from_directory(DOWNLOAD_FOLDER, filename, as_attachment=True)
 
-
 counter_file = "counter.txt"
-
-
-
 
 @app.route('/api/counter')
 def get_counter():
@@ -101,14 +105,11 @@ def increment_counter():
         f.truncate()
     return jsonify({"new_count": count})
 
-
 def initialize_counter():
     if not os.path.exists(counter_file):
         with open(counter_file, 'w') as f:
             f.write("0")
 
-
 if __name__ == '__main__':
     initialize_counter()
     app.run(debug=True)
-

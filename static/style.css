@@ -20,3 +20,9 @@ input::placeholder {
   color: #9ca3af; /* gray-400 */
 }
 
+
+footer {
+    position: absolute;
+    top: 75%;
+    font-weight: 500;
+}
