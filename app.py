@@ -2,11 +2,20 @@ from flask import Flask, request, jsonify, render_template, send_from_directory
 import yt_dlp
 import os
 import time
+import random
 
 app = Flask(__name__)
 
 DOWNLOAD_FOLDER = os.path.join(os.getcwd(), "downloads")
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
+
+# Lista de User-Agents para rotación
+user_agents = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.101 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0',
+]
 
 # Elimina archivos en DOWNLOAD_FOLDER con más de max_age segundos
 def clean_old_files(max_age_seconds=3600):
@@ -38,11 +47,14 @@ def download_video():
     # Limpiar archivos antiguos antes de la nueva descarga
     clean_old_files(max_age_seconds=3600)  # 1 hora
 
+    # Retraso para evitar detección de bots
+    time.sleep(1)
+
     ydl_opts = {
         'outtmpl': os.path.join(DOWNLOAD_FOLDER, '%(title)s.%(ext)s'),
         'quiet': True,
         'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'User-Agent': random.choice(user_agents),  # Rotación de User-Agent
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.5',
             'Referer': 'https://www.youtube.com/',
@@ -81,7 +93,11 @@ def download_video():
         })
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        error_message = str(e)
+        # Personalizar mensaje para errores de autenticación
+        if "Sign in to confirm you’re not a bot" in error_message:
+            error_message = "Este video requiere inicio de sesión o está restringido por YouTube. Prueba con otro video público."
+        return jsonify({"error": error_message}), 500
 
 @app.route('/download/<filename>')
 def download_file(filename):
