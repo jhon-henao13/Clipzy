@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clipzy - Descarga videos fácilmente</title>
+
+  <!-- ✅ SEO META -->
+  <meta name="description" content="Clipzy te permite descargar videos de YouTube, TikTok, Pinterest e Instagram. Gratis, rápido y en varias calidades.">
+
+  <meta name="keywords" content="descargar videos, youtube downloader, tiktok downloader, descargar reels, instagram reels, pinterest, mp4 gratis, youtube mp4, tiktok mp4, instagram mp4, pinterest mp4, youtube mp3">
+
+  <meta name="author" content="Clipzy">
+  <meta property="og:title" content="Clipzy - Descarga videos de YouTube, TikTok, Instagram" />
+  <meta property="og:description" content="Herramienta gratuita para descargar cualquier video en segundos." />
+  <meta property="og:image" content="https://cdn-icons-png.flaticon.com/512/1384/1384060.png" />
+  <meta property="og:url" content="https://clipzy.com" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <!-- ✅ TAILWIND -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- ✅ CUSTOM CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+  <!-- ✅ PARTICLES.JS -->
+  <script src="https://cdn.jsdelivr.net/npm/tsparticles@2.12.0/tsparticles.bundle.min.js"></script>
+</head>
+<body class="bg-gradient-to-br from-green-900 via-green-950 to-black text-white min-h-screen relative overflow-hidden flex flex-col">
+  <!-- ✅ Partículas -->
+  <div id="tsparticles" class="absolute inset-0 -z-10"></div>
+
+  <!-- ✅ Contenido -->
+  <main class="flex flex-col items-center justify-center min-h-screen p-6 text-center animate-fade-in">
+    <h1 class="text-5xl sm:text-6xl font-extrabold text-green-400 drop-shadow mb-4">🎬 Clipzy</h1>
+    <p class="text-green-200 mb-6 max-w-xl">
+      Descarga videos de <strong>YouTube</strong>, <strong>TikTok</strong>, <strong>Instagram</strong> y <strong>Pinterest</strong> en segundos. 100% Gratis.
+    </p>
+
+    <input id="urlInput" type="text" placeholder="Pega el enlace del video..." 
+      class="w-full max-w-md p-3 rounded text-black shadow mb-4 focus:outline-none focus:ring-2 focus:ring-green-400 transition" />
+
+
+    <select id="formatSelect" class="mb-4 w-full max-w-md p-2 rounded text-black shadow">
+      <option value="video">📹 Video (HD)</option>
+      <option value="audio">🎵 Solo Audio (MP3)</option>
+    </select>
+  
+    
+
+    <button onclick="downloadVideo()" 
+      class="bg-green-600 px-6 py-2 rounded hover:bg-green-500 font-semibold transition duration-200 shadow-lg hover:scale-105">
+      📥 Descargar
+    </button>
+
+    <div id="preview" class="mt-6"></div>
+
+
+    <div id="result" class="mt-6 text-white text-center"></div>
+  </main>
+
+
+  <div class="my-6 w-full max-w-md">
+    <!-- Reemplaza con tu código de AdSense real -->
+    <div class="bg-green-800 p-4 rounded text-sm text-green-100 text-center">
+      📢 Anuncio: Descarga sin límites y sin publicidad al registrarte. ¡Próximamente!
+    </div>
+  </div>
+
+
+
+
+  <!-- ✅ Footer -->
+    <footer class="w-full text-sm text-green-300 text-center mt-auto py-6">
+    © 2025 Clipzy — Descargar videos gratis online
+  </footer>
+
+
+  <!-- ✅ JS -->
+  <script>
+    async function downloadVideo() {
+      const url = document.getElementById('urlInput').value;
+      const resultDiv = document.getElementById('result');
+      const loader = document.getElementById('loader');
+
+      const format = document.getElementById('formatSelect').value;
+
+      resultDiv.innerHTML = "";
+      loader.classList.remove("hidden");
+
+      try {
+        const res = await fetch('/api/download', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url, format })
+        });
+      
+        const data = await res.json();
+        loader.classList.add("hidden");
+
+        await fetch('/api/increment', { method: 'POST' });
+
+      
+        if (data.success) {
+          const thumbnail = data.thumbnail || '';
+          resultDiv.innerHTML = `
+            <img src="${thumbnail}" alt="Vista previa" class="w-64 rounded mx-auto mb-4 shadow-lg border border-green-500">
+            <p class="text-green-300 mt-4">🎉 Video listo: <strong>${data.title}</strong></p>
+            <a href="${data.download_url}" class="text-green-400 underline mt-2     inline-block hover:text-green-200 transition">⬇ Descargar ahora</a>`;
+        } else {
+          resultDiv.innerHTML = `<p class="text-red-400">❌ Error: ${data.error}</p>`;
+        }
+      } catch (err) {
+        loader.classList.add("hidden");
+        resultDiv.innerHTML = `<p class="text-red-400">❌ Error al conectar con el    servidor.</p>`;
+      }
+    }
+
+    // Partículas
+    tsParticles.load("tsparticles", {
+      fullScreen: { enable: false },
+      background: { color: "transparent" },
+      particles: {
+        number: { value: 50 },
+        color: { value: "#22c55e" },
+        shape: { type: "circle" },
+        opacity: { value: 0.3 },
+        size: { value: { min: 1, max: 4 } },
+        move: {
+          enable: true,
+          speed: 1,
+          direction: "none",
+          outModes: { default: "bounce" }
+        }
+      },
+      interactivity: {
+        events: {
+          onHover: { enable: true, mode: "repulse" }
+        },
+        modes: {
+          repulse: { distance: 100 }
+        }
+      }
+    });
+  </script>
+
+
+  <!-- Loader oculto -->
+<div id="loader" class="hidden fixed inset-0 flex items-center justify-center bg-black bg-opacity-80 z-50">
+  <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-green-400"></div>
+</div>
+
+
+
+</body>
+</html>
