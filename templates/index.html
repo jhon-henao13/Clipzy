@@ -2,11 +2,22 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>Clipzy - Descarga videos fácilmente</title>
+
+  <!-- ✅ PWA Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Clipzy">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/icon.png') }}">
+
+  <meta name="theme-color" content="#22c55e">
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
 
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9801535106508814"
      crossorigin="anonymous"></script>
+
+  <link rel="shortcut icon" href="/static/img/icon.png" type="image/x-icon">
 
   <!-- ✅ SEO META -->
   <meta name="description" content="Clipzy te permite descargar videos de YouTube, TikTok, Pinterest e Instagram. Gratis, rápido y en varias calidades.">
@@ -78,7 +89,10 @@
     </div>
   </div>
 
-
+  <!-- Botón sutil para instalar PWA -->
+  <button id="installButton" class="fixed bottom-4 right-4 bg-green-600 px-4 py-2 rounded hover:bg-green-500 font-semibold transition duration-200 shadow-lg hover:scale-105 hidden">
+    Instalar Clipzy
+  </button>
 
 
   <!-- ✅ Footer -->
@@ -89,6 +103,33 @@
 
   <!-- ✅ JS -->
   <script>
+    // Registrar Service Worker para PWA
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/static/service-worker.js')
+          .then(reg => console.log('Service Worker registrado'))
+          .catch(err => console.log('Error al registrar Service Worker: ' + err));
+      });
+    }
+
+    // Lógica para el botón de instalación
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      document.getElementById('installButton').classList.remove('hidden');
+    });
+
+    document.getElementById('installButton').addEventListener('click', async () => {
+      document.getElementById('installButton').classList.add('hidden');
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        console.log('PWA instalada');
+      }
+      deferredPrompt = null;
+    });
+
     async function downloadVideo() {
       const url = document.getElementById('urlInput').value;
       const resultDiv = document.getElementById('result');
@@ -160,8 +201,6 @@
 <div id="loader" class="hidden fixed inset-0 flex items-center justify-center bg-black bg-opacity-80 z-50">
   <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-green-400"></div>
 </div>
-
-
 
 </body>
 </html>
