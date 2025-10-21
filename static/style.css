@@ -13,92 +13,124 @@
 }
 
 .animate-fade-in-slow {
-  animation: fade-in-slow 2s ease-out forwards;
+  animation: fade-in-slow 1.5s ease-out forwards;
 }
 
 input::placeholder {
   color: #9ca3af; /* gray-400 */
 }
 
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.content-wrapper {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
 footer {
   font-weight: 500;
-  padding: 1.5rem 0; /* Espaciado consistente */
-  background-color: rgba(0, 0, 0, 0.5); /* Fondo semitransparente */
-  z-index: 10; /* Asegura que esté encima de las partículas */
+  padding: 1rem;
+  background-color: rgba(0, 0, 0, 0.7);
+  z-index: 10;
+  width: 100%;
+  flex-shrink: 0;
 }
 
-/* Ajustar el contenedor principal para pantallas pequeñas */
 main {
-  flex-grow: 1; /* Ocupa el espacio disponible */
-  padding: 1.5rem; /* Ajuste para pantallas pequeñas */
-  min-height: auto; /* Elimina min-height para evitar desbordamiento */
+  flex-grow: 1;
+  padding: 1rem;
 }
 
-/* Asegurar que la vista previa sea responsiva */
 #result {
-  max-width: 100%; /* Evita desbordamiento */
+  max-width: 100%;
   margin: 0 auto;
 }
 
+.preview-container {
+  max-width: 100%;
+  overflow: hidden;
+}
+
 #result img {
-  max-width: 100%; /* Evita que la imagen desborde */
-  height: auto; /* Mantiene proporciones */
-  max-height: 200px; /* Limita la altura para evitar que empuje el footer */
+  max-width: 100%;
+  height: auto;
+  max-height: 180px;
 }
 
-/* Ajustar el contenedor de anuncios */
 .my-6 {
-  margin-top: 1.5rem;
-  margin-bottom: 1.5rem;
-  max-width: 100%; /* Evita desbordamiento en pantallas pequeñas */
+  margin: 1rem 0;
+  max-width: 100%;
+  padding: 0 1rem;
 }
 
-/* Estilo para el ícono de GitHub */
-.fa-brands.fa-github {
-  font-size: 1.2rem; /* Tamaño del ícono */
-  vertical-align: middle; /* Alinea con el texto */
+.fa-brands.fa-github, .fa-brands.fa-paypal {
+  font-size: 1rem;
+  vertical-align: middle;
 }
 
-/* Estilo para el botón de PayPal */
 a[href*="paypal.com"] {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.9rem; /* Tamaño consistente */
+  font-size: 0.9rem;
 }
 
-/* Ajuste para el logo en pantallas pequeñas */
 .logo-container img {
-  max-width: 100px; /* Limita el tamaño del logo */
+  max-width: 80px;
 }
 
-/* Asegurar que el botón de instalar PWA no cubra el footer */
 #installButton {
-  z-index: 20; /* Encima de otros elementos */
+  z-index: 20;
+  bottom: 4.5rem;
 }
 
 
 .mr-1 {
-    margin-left: 0.5rem;
+    margin-left: 0.3rem;
 }
 
 
-/* Media queries para pantallas pequeñas */
+
 @media (max-width: 640px) {
   main {
-    padding: 1rem;
+    padding: 0.75rem;
   }
   .logo-container {
-    flex-direction: column; /* Apila el logo y el título en móviles */
+    flex-direction: column;
     gap: 0.25rem;
   }
   .logo-container img {
-    width: 80px;
+    width: 60px;
   }
   h1 {
-    font-size: 2.5rem; /* Reduce el tamaño del título */
+    font-size: 2rem;
   }
   #result {
-    padding-bottom: 1rem; /* Espacio adicional para evitar solapamiento */
+    padding-bottom: 0.5rem;
+  }
+  #result img {
+    max-height: 150px;
+  }
+  .my-6 {
+    margin: 0.75rem 0;
+    padding: 0 0.5rem;
+  }
+  button, a[href*="paypal.com"] {
+    font-size: 0.85rem;
+    padding: 0.5rem 1rem;
+  }
+  #installButton {
+    bottom: 3.5rem;
+    font-size: 0.85rem;
+    padding: 0.5rem 1rem;
+  }
+  footer {
+    padding: 0.75rem;
+    font-size: 0.75rem;
   }
 }

@@ -41,61 +41,63 @@
   <!-- ✅ PARTICLES.JS -->
   <script src="https://cdn.jsdelivr.net/npm/tsparticles@2.12.0/tsparticles.bundle.min.js"></script>
 </head>
-<body class="bg-gradient-to-br from-green-900 via-green-950 to-black text-white min-h-screen relative overflow-hidden flex flex-col">
+<body class="bg-gradient-to-br from-green-900 via-green-950 to-black text-white min-h-screen relative flex flex-col">
   <!-- ✅ Partículas -->
   <div id="tsparticles" class="absolute inset-0 -z-10"></div>
 
   <!-- ✅ Contenido -->
-  <main class="flex flex-col items-center justify-start p-6 text-center animate-fade-in flex-grow">
-    <div class="logo-container" style="display: flex; flex-direction: row; justify-content: center; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
-      <img src="/static/img/icon.png" alt="Logo de Clipzy" width="20%" class="max-w-[100px]">
-      <h1 class="text-5xl sm:text-6xl font-extrabold text-white drop-shadow mb-4">Clipzy</h1>
-    </div>
+  <div class="content-wrapper flex flex-col flex-grow">
+    <main class="flex flex-col items-center justify-start p-4 sm:p-6 text-center animate-fade-in">
+      <div class="logo-container flex flex-row justify-center items-center gap-2 mb-4">
+        <img src="/static/img/icon.png" alt="Logo de Clipzy" class="max-w-[80px] sm:max-w-[100px]">
+        <h1 class="text-4xl sm:text-5xl font-extrabold text-white drop-shadow mb-2">Clipzy</h1>
+      </div>
 
-    <p class="text-green-200 mb-6 max-w-xl">
-      Descarga videos de <strong>YouTube</strong>, <strong>TikTok</strong>, <strong>Instagram</strong> y <strong>Pinterest</strong> en segundos. 100% Gratis.
-    </p>
+      <p class="text-green-200 mb-6 max-w-md text-sm sm:text-base">
+        Descarga videos de <strong>YouTube</strong>, <strong>TikTok</strong>, <strong>Instagram</strong> y <strong>Pinterest</strong> en segundos. 100% Gratis.
+      </p>
 
-    <input id="urlInput" type="text" placeholder="Pega el enlace del video..." 
-      class="w-full max-w-md p-3 rounded text-black shadow mb-4 focus:outline-none focus:ring-2 focus:ring-green-400 transition" />
+      <input id="urlInput" type="text" placeholder="Pega el enlace del video..." 
+        class="w-full max-w-md p-3 rounded text-black shadow mb-4 focus:outline-none focus:ring-2 focus:ring-green-400 transition text-sm sm:text-base" />
 
-    <select id="formatSelect" class="mb-4 w-full max-w-md p-2 rounded text-black shadow">
-      <option value="video">📹 Video (HD)</option>
-      <option value="audio">🎵 Solo Audio (MP3)</option>
-    </select>
+      <select id="formatSelect" class="mb-4 w-full max-w-md p-2 rounded text-black shadow text-sm sm:text-base">
+        <option value="video">📹 Video (HD)</option>
+        <option value="audio">🎵 Solo Audio (MP3)</option>
+      </select>
 
-    <button onclick="downloadVideo()" 
-      class="bg-green-600 px-6 py-2 rounded hover:bg-green-500 font-semibold transition duration-200 shadow-lg hover:scale-105">
-      📥 Descargar
-    </button>
+      <button onclick="downloadVideo()" 
+        class="bg-green-600 px-4 sm:px-6 py-2 rounded hover:bg-green-500 font-semibold transition duration-200 shadow-lg hover:scale-105 text-sm sm:text-base">
+        📥 Descargar
+      </button>
 
-    <div class="text-yellow-300 text-sm mt-4 max-w-md bg-yellow-900/50 p-3 rounded">
-      ⚠️ Nota: Algunos videos de YouTube pueden no descargarse debido a su sistema de protección anti-bots. Prueba con videos públicos o enlaces de TikTok, Instagram o Pinterest.
-    </div>
+      <div class="text-yellow-300 text-xs sm:text-sm mt-4 max-w-md bg-yellow-900/50 p-3 rounded">
+        ⚠️ Nota: Algunos videos de YouTube pueden no descargarse debido a su sistema de protección anti-bots. Prueba con videos públicos o enlaces de TikTok, Instagram o Pinterest.
+      </div>
 
-    <div id="preview" class="mt-6"></div>
+      <div id="preview" class="mt-4"></div>
 
-    <div id="result" class="mt-6 text-white text-center max-w-md mx-auto"></div>
-  </main>
+      <div id="result" class="mt-4 text-white text-center max-w-md mx-auto"></div>
+    </main>
 
-  <div class="my-6 w-full max-w-md mx-auto">
-    <!-- Código de Monetag aquí (reemplaza con el código proporcionado por Monetag) -->
-    <div class="bg-green-800 p-4 rounded text-sm text-green-100 text-center">
-      📢 Anuncio: Descarga sin límites y sin publicidad al registrarte. ¡Próximamente!
-    </div>
-    <div class="mt-4 text-center">
-      <a href="https://www.paypal.com/donate/?hosted_button_id=QX27VXRQMVENG" target="_blank" class="bg-blue-600 px-4 py-2 rounded hover:bg-blue-500 font-semibold transition duration-200">
-        <i class="fa-brands fa-paypal mr-1"></i> Apoya Clipzy con una donación
-      </a>
+    <div class="my-6 w-full max-w-md mx-auto px-4">
+      <!-- Código de Monetag aquí (reemplaza con el código proporcionado por Monetag) -->
+      <div class="bg-green-800 p-3 rounded text-xs sm:text-sm text-green-100 text-center">
+        📢 Anuncio: Descarga sin límites y sin publicidad al registrarte. ¡Próximamente!
+      </div>
+      <div class="mt-4 text-center">
+        <a href="https://www.paypal.com/donate/?hosted_button_id=QX27VXRQMVENG" target="_blank" class="bg-blue-600 px-4 sm:px-6 py-2 rounded hover:bg-blue-500 font-semibold transition duration-200 text-sm sm:text-base">
+          <i class="fa-brands fa-paypal mr-1"></i> Apoya Clipzy
+        </a>
+      </div>
     </div>
   </div>
 
   <!-- Botón sutil para instalar PWA -->
-  <button id="installButton" class="fixed bottom-4 right-4 bg-green-600 px-4 py-2 rounded hover:bg-green-500 font-semibold transition duration-200 shadow-lg hover:scale-105 hidden">
+  <button id="installButton" class="fixed bottom-16 right-4 bg-green-600 px-4 py-2 rounded hover:bg-green-500 font-semibold transition duration-200 shadow-lg hover:scale-105 hidden text-sm sm:text-base">
     Instalar Clipzy
   </button>
 
-  <footer class="w-full text-sm text-green-300 text-center mt-auto py-6 bg-black/50">
+  <footer class="w-full text-xs sm:text-sm text-green-300 text-center py-4 bg-black/70 shrink-0">
     © 2025 Clipzy — Descargar videos gratis online. By 
     <a href="https://github.com/jhon-henao13" target="_blank" class="text-green-300 hover:text-green-200 transition">
       <i class="fa-brands fa-github mr-1"></i>Estiguar
@@ -158,15 +160,17 @@
         if (data.success) {
           const thumbnail = data.thumbnail || '';
           resultDiv.innerHTML = `
-            <img src="${thumbnail}" alt="Vista previa" class="w-full max-w-[300px] rounded mx-auto mb-4 shadow-lg border border-green-500">
-            <p class="text-green-300 mt-4">🎉 Video listo: <strong>${data.title}</strong></p>
-            <a href="${data.download_url}" class="text-green-400 underline mt-2 inline-block hover:text-green-200 transition">⬇ Descargar ahora</a>`;
+            <div class="preview-container">
+              <img src="${thumbnail}" alt="Vista previa" class="w-full max-w-[250px] sm:max-w-[300px] rounded mx-auto mb-2 shadow-lg border border-green-500">
+              <p class="text-green-300 mt-2 text-sm sm:text-base">🎉 Video listo: <strong>${data.title}</strong></p>
+              <a href="${data.download_url}" class="text-green-400 underline mt-1 inline-block hover:text-green-200 transition text-sm sm:text-base">⬇ Descargar ahora</a>
+            </div>`;
         } else {
-          resultDiv.innerHTML = `<p class="text-red-400">❌ Error: ${data.error}</p>`;
+          resultDiv.innerHTML = `<p class="text-red-400 text-sm sm:text-base">❌ Error: ${data.error}</p>`;
         }
       } catch (err) {
         loader.classList.add("hidden");
-        resultDiv.innerHTML = `<p class="text-red-400">❌ Error al conectar con el servidor.</p>`;
+        resultDiv.innerHTML = `<p class="text-red-400 text-sm sm:text-base">❌ Error al conectar con el servidor.</p>`;
       }
     }
 
@@ -175,14 +179,14 @@
       fullScreen: { enable: false },
       background: { color: "transparent" },
       particles: {
-        number: { value: 50 },
+        number: { value: 30, density: { enable: true, value_area: 800 } },
         color: { value: "#22c55e" },
         shape: { type: "circle" },
         opacity: { value: 0.3 },
-        size: { value: { min: 1, max: 4 } },
+        size: { value: { min: 1, max: 3 } },
         move: {
           enable: true,
-          speed: 1,
+          speed: 0.5,
           direction: "none",
           outModes: { default: "bounce" }
         }
@@ -200,7 +204,7 @@
 
   <!-- Loader oculto -->
   <div id="loader" class="hidden fixed inset-0 flex items-center justify-center bg-black bg-opacity-80 z-50">
-    <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-green-400"></div>
+    <div class="animate-spin rounded-full h-12 w-12 sm:h-16 sm:w-16 border-t-4 border-green-400"></div>
   </div>
 </body>
 </html>
