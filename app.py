@@ -137,6 +137,12 @@ def privacy():
     return render_template('privacy.html')
 
 
+@app.route('/sw.js')
+def monetag_verify():
+    return send_from_directory(os.path.dirname(__file__), 'sw.js')
+
+
+
 
 if __name__ == '__main__':
     initialize_counter()
