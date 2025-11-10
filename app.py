@@ -17,6 +17,9 @@ user_agents = [
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0',
 ]
 
+cookie_file_path = 'youtube_cookies.txt'
+
+
 # Elimina archivos en DOWNLOAD_FOLDER con más de max_age segundos
 def clean_old_files(max_age_seconds=3600):
     now = time.time()
@@ -70,6 +73,11 @@ def download_video():
         'ignoreerrors': False,
     }
 
+    if os.path.exists(cookie_file_path):
+        ydl_opts['cookiefile'] = cookie_file_path
+    else:
+        ydl_opts.pop('cookiefile', None)
+
     if format_type == 'audio':
         ydl_opts['format'] = 'bestaudio/best'
         ydl_opts['postprocessors'] = [{
@@ -93,6 +101,9 @@ def download_video():
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             filename = ydl.prepare_filename(info)
+            # Sanitiza nombre
+            filename = os.path.basename(filename)
+            filepath = os.path.join(DOWNLOAD_FOLDER, filename)
 
             if format_type == 'audio':
                 filename = os.path.splitext(filename)[0] + ".mp3"
