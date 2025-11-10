@@ -53,6 +53,11 @@ def download_video():
     ydl_opts = {
         'outtmpl': os.path.join(DOWNLOAD_FOLDER, '%(title)s.%(ext)s'),
         'quiet': True,
+        'cookiefile': 'youtube_cookies.txt',
+        'merge_output_format': 'mp4',
+        'continuedl': True,
+        'nocheckcertificate': True,
+        'concurrent_fragment_downloads': 3,
         'http_headers': {
             'User-Agent': random.choice(user_agents),
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -70,11 +75,19 @@ def download_video():
         ydl_opts['postprocessors'] = [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
-            'preferredquality': '192',
+            'preferredquality': '320',
         }]
-    else:
+    elif format_type == '1080p':
+        ydl_opts['format'] = 'bestvideo[height<=1080]+bestaudio/best'
+    elif format_type == '720p':
+        ydl_opts['format'] = 'bestvideo[height<=720]+bestaudio/best'
+    elif format_type == '480p':
+        ydl_opts['format'] = 'bestvideo[height<=480]+bestaudio/best'
+    elif format_type == 'best':
         ydl_opts['format'] = 'bestvideo+bestaudio/best'
-        ydl_opts['merge_output_format'] = 'mp4'
+    else:
+        ydl_opts['format'] = 'best'
+
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:

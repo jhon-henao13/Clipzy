@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="Clipzy">
-  <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/icon.png') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/clipzy_png.png') }}">
 
   <meta name="theme-color" content="#22c55e">
   <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
@@ -17,14 +17,14 @@
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9801535106508814"
      crossorigin="anonymous"></script>
 
-  <link rel="shortcut icon" href="/static/img/icon.png" type="image/x-icon">
+  <link rel="shortcut icon" href="/static/img/clipzy_png.png" type="image/x-icon">
 
   <!-- ✅ SEO META -->
-  <meta name="description" content="Clipzy te permite descargar videos de YouTube, TikTok, Pinterest e Instagram. Gratis, rápido y en varias calidades.">
-  <meta name="keywords" content="descargar videos, youtube downloader, tiktok downloader, descargar reels, instagram reels, pinterest, mp4 gratis, youtube mp4, tiktok mp4, instagram mp4, pinterest mp4, youtube mp3">
+  <meta name="description" content="Clipzy es la mejor herramienta gratuita para descargar videos y música de YouTube, TikTok, Instagram y Pinterest en alta calidad (MP4, MP3, HD, Full HD, 4K).">
+  <meta name="keywords" content="descargar videos youtube mp4, youtube downloader, tiktok downloader, descargar reels, instagram reels, pinterest, mp4 gratis, youtube mp4, tiktok mp4, instagram mp4, pinterest mp4, youtube mp3, descargar musica youtube mp3, descargar tiktok sin marca de agua, descargar reels instagram, youtube downloader hd, descargar shorts youtube">
   <meta name="author" content="Clipzy">
-  <meta property="og:title" content="Clipzy - Descarga videos de YouTube, TikTok, Instagram" />
-  <meta property="og:description" content="Herramienta gratuita para descargar cualquier video en segundos." />
+  <meta property="og:title" content="Clipzy - Descarga videos y música en HD" />
+  <meta property="og:description" content="Descarga tus videos favoritos de YouTube, TikTok, Instagram y Pinterest sin marca de agua y en la mejor calidad. Gratis, rápido y seguro.">
   <meta property="og:image" content="https://cdn-icons-png.flaticon.com/512/1384/1384060.png" />
   <meta property="og:url" content="https://clipzy.com" />
   <meta name="twitter:card" content="summary_large_image" />
@@ -53,7 +53,7 @@
   <div class="content-wrapper flex flex-col flex-grow">
     <main class="flex flex-col items-center justify-start p-4 sm:p-6 text-center animate-fade-in">
       <div class="logo-container flex flex-row justify-center items-center gap-2 mb-4">
-        <img src="/static/img/icon.png" alt="Logo de Clipzy" class="max-w-[80px] sm:max-w-[100px]">
+        <img src="/static/img/clipzy_png.png" alt="Logo de Clipzy" class="max-w-[80px] sm:max-w-[100px]">
         <h1 class="text-4xl sm:text-5xl font-extrabold text-white drop-shadow mb-2">Clipzy</h1>
       </div>
 
@@ -64,10 +64,17 @@
       <input id="urlInput" type="text" placeholder="Pega el enlace del video..." 
         class="w-full max-w-md p-3 rounded text-black shadow mb-4 focus:outline-none focus:ring-2 focus:ring-green-400 transition text-sm sm:text-base" />
 
+
       <select id="formatSelect" class="mb-4 w-full max-w-md p-2 rounded text-black shadow text-sm sm:text-base">
-        <option value="video">📹 Video (HD)</option>
-        <option value="audio">🎵 Solo Audio (MP3)</option>
+        <option value="best">🎥 Mejor calidad disponible</option>
+        <option value="1080p">HD 1080p</option>
+        <option value="720p">HD 720p</option>
+        <option value="480p">SD 480p</option>
+        <option value="audio">🎵 Solo audio (MP3)</option>
       </select>
+
+
+
 
       <button onclick="downloadVideo()" 
         class="bg-green-600 px-4 sm:px-6 py-2 rounded hover:bg-green-500 font-semibold transition duration-200 shadow-lg hover:scale-105 text-sm sm:text-base">
@@ -165,7 +172,7 @@
           const thumbnail = data.thumbnail || '';
           resultDiv.innerHTML = `
             <div class="preview-container">
-              <img src="${thumbnail}" alt="Vista previa" class="w-full max-w-[250px] sm:max-w-[300px] rounded mx-auto mb-2 shadow-lg border border-green-500">
+              <img src="${thumbnail}" alt="Vista previa" class="max-w-full max-h-[350px] rounded mx-auto mb-2 shadow-lg border border-green-500 object-contain">
               <p class="text-green-300 mt-2 text-sm sm:text-base">🎉 Video listo: <strong>${data.title}</strong></p>
               <a href="${data.download_url}" class="text-green-400 underline mt-1 inline-block hover:text-green-200 transition text-sm sm:text-base">⬇ Descargar ahora</a>
             </div>`;
