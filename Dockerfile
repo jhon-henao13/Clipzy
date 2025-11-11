@@ -29,4 +29,4 @@ RUN mkdir -p /app/downloads
 EXPOSE 8000
 
 # Comando de ejecución (compatible con Koyeb y Render)
-CMD ["gunicorn", "--bind", "0.0.0.0:${PORT:-8000}", "app:app", "--timeout", "120"]
+CMD bash -c "gunicorn --bind 0.0.0.0:${PORT:-8000} app:app --timeout 120"
