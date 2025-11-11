@@ -20,6 +20,12 @@ user_agents = [
 
 cookie_file_path = "youtube_cookies.txt"
 
+# Crear el archivo de cookies desde variable de entorno (si existe)
+if not os.path.exists(cookie_file_path) and os.getenv("YT_COOKIES"):
+    with open(cookie_file_path, "w", encoding="utf-8") as f:
+        f.write(os.getenv("YT_COOKIES"))
+
+
 
 def sanitize_filename(filename):
     """Limpia nombres de archivo inválidos o con acentos"""

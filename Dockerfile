@@ -13,9 +13,13 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
+
+
 # Copia requirements e instala
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install -U yt-dlp
+
 
 # Copia la app
 COPY . .
