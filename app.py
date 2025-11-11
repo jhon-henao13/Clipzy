@@ -78,6 +78,7 @@ def download_video():
         'outtmpl': os.path.join(DOWNLOAD_FOLDER, '%(title)s.%(ext)s'),
         'merge_output_format': 'mp4',
         'quiet': True,
+        'progress_hooks': [lambda d: print(f"Progreso: {d.get('status')}")],
         'noplaylist': True,
         'continuedl': True,
         'nocheckcertificate': True,
@@ -105,12 +106,16 @@ def download_video():
     if format_type == 'audio':
         ydl_opts.update({
             'format': 'bestaudio/best',
+            'prefer_ffmpeg': True,
             'postprocessors': [{
                 'key': 'FFmpegExtractAudio',
                 'preferredcodec': 'mp3',
                 'preferredquality': '320',
             }],
         })
+
+
+
     elif format_type == '1080p':
         ydl_opts['format'] = 'bestvideo[height<=1080]+bestaudio/best'
     elif format_type == '720p':
