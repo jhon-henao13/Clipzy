@@ -20,10 +20,20 @@ user_agents = [
 
 cookie_file_path = "youtube_cookies.txt"
 
-# Crear el archivo de cookies desde variable de entorno (si existe)
-if not os.path.exists(cookie_file_path) and os.getenv("YT_COOKIES"):
-    with open(cookie_file_path, "w", encoding="utf-8") as f:
-        f.write(os.getenv("YT_COOKIES"))
+# --- Soporte para cookies desde variables de entorno ---
+import tempfile
+
+# Si existe la variable YT_COOKIES en el entorno, la guardamos en un archivo temporal
+yt_cookies_env = os.getenv("YT_COOKIES")
+
+if yt_cookies_env:
+    tmp_cookie_path = os.path.join(tempfile.gettempdir(), "yt_cookies.txt")
+    with open(tmp_cookie_path, "w", encoding="utf-8") as f:
+        f.write(yt_cookies_env.strip())
+    cookie_file_path = tmp_cookie_path
+    print("✅ Cookies de YouTube cargadas desde variable de entorno.")
+else:
+    print("⚠️ No se encontró la variable YT_COOKIES. Se usará el archivo local si existe.")
 
 
 
