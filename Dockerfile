@@ -1,35 +1,32 @@
-# Dockerfile
+# Usa Python 3.12 slim como base
 FROM python:3.12-slim
 
-# Variables de entorno
+# Evita buffering
 ENV PYTHONUNBUFFERED=1
 
-# Instala dependencias del sistema
-RUN apt-get update && apt-get install -y \
+# Instala ffmpeg y dependencias necesarias
+RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     curl \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
+# Crea carpeta de trabajo
 WORKDIR /app
 
-
-
-# Copia requirements e instala
+# Copia requirements.txt e instala dependencias
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt && \
-    pip install -U yt-dlp
+    pip install -U yt-dlp gunicorn
 
-
-# Copia la app
+# Copia la aplicación completa
 COPY . .
 
-# Crea la carpeta de descargas
+# Crea carpeta de descargas
 RUN mkdir -p /app/downloads
 
-# Expone el puerto que asigna Render
-EXPOSE 10000  # Render reemplaza con $PORT automáticamente
+# Koyeb usa el puerto 8000 para el health check
+EXPOSE 8000
 
-# Comando
-CMD ["gunicorn", "--bind", "0.0.0.0:$PORT", "app:app", "--timeout", "120"]
-
+# Comando de ejecución (compatible con Koyeb y Render)
+CMD ["gunicorn", "--bind", "0.0.0.0:${PORT:-8000}", "app:app", "--timeout", "120"]
