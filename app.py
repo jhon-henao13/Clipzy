@@ -121,11 +121,25 @@ def download_video():
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
+
             raw_filename = ydl.prepare_filename(info)
-            ext = os.path.splitext(raw_filename)[1]
-            safe_name = sanitize_filename(info.get("title", "video")) + ext
-            new_path = os.path.join(DOWNLOAD_FOLDER, safe_name)
-            os.rename(raw_filename, new_path)
+            base, ext = os.path.splitext(raw_filename)
+            safe_name = sanitize_filename(info.get("title", "video"))
+            
+            # Detectar el archivo final (yt-dlp puede cambiar la extensión después de postprocesar)
+            final_file = None
+            for f in os.listdir(DOWNLOAD_FOLDER):
+                if f.startswith(os.path.basename(base)):
+                    final_file = f
+                    break
+                
+            if not final_file:
+                raise FileNotFoundError("No se encontró el archivo final tras la conversión con ffmpeg.")
+            
+            # Renombrar al nombre limpio
+            new_path = os.path.join(DOWNLOAD_FOLDER, f"{safe_name}{os.path.splitext(final_file)[1]}")
+            os.rename(os.path.join(DOWNLOAD_FOLDER, final_file), new_path)
+            
 
         return jsonify({
             "success": True,
