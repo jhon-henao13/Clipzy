@@ -91,6 +91,8 @@ def download_video():
             'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
             'Referer': 'https://www.youtube.com/',
             'Accept': '*/*',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
             'DNT': '1',
         },
     }
@@ -125,28 +127,47 @@ def download_video():
             raw_filename = ydl.prepare_filename(info)
             base, ext = os.path.splitext(raw_filename)
             safe_name = sanitize_filename(info.get("title", "video"))
-            
+
             # Detectar el archivo final (yt-dlp puede cambiar la extensión después de postprocesar)
             final_file = None
-            for f in os.listdir(DOWNLOAD_FOLDER):
-                if f.startswith(os.path.basename(base)):
-                    final_file = f
-                    break
+                
+            if "requested_downloads" in info and info["requested_downloads"]:
+                final_file = info["requested_downloads"][0]["filepath"]
+            else:
+                final_file = ydl.prepare_filename(info)
+            
+            # Asegurarse de que el archivo existe
+            if not os.path.exists(final_file):
+                # Intentar encontrar archivo con nombre similar
+                base_name = sanitize_filename(info.get("title", "video"))
+                matches = [f for f in os.listdir(DOWNLOAD_FOLDER) if base_name in f]
+                if matches:
+                    final_file = os.path.join(DOWNLOAD_FOLDER, matches[0])
+                else:
+                    raise FileNotFoundError("No se encontró el archivo final tras la conversión con ffmpeg.")
+
+
                 
             if not final_file:
                 raise FileNotFoundError("No se encontró el archivo final tras la conversión con ffmpeg.")
-            
+
             # Renombrar al nombre limpio
             new_path = os.path.join(DOWNLOAD_FOLDER, f"{safe_name}{os.path.splitext(final_file)[1]}")
-            os.rename(os.path.join(DOWNLOAD_FOLDER, final_file), new_path)
             
+            if final_file != new_path:
+                os.rename(final_file, new_path)
+
+
+
 
         return jsonify({
             "success": True,
             "title": info.get("title"),
             "filename": safe_name,
             "thumbnail": info.get("thumbnail"),
-            "download_url": f"/download/{safe_name}"
+            "download_url": f"/download/{os.path.basename(new_path)}"
+
+
         })
 
     except Exception as e:
@@ -184,14 +205,19 @@ def get_counter():
         return jsonify({"visits": int(f.read())})
 
 
+import threading
+counter_lock = threading.Lock()
+
 @app.route('/api/increment', methods=['POST'])
 def increment_counter():
-    with open(counter_file, "r+") as f:
-        count = int(f.read()) + 1
-        f.seek(0)
-        f.write(str(count))
-        f.truncate()
+    with counter_lock:
+        with open(counter_file, "r+") as f:
+            count = int(f.read()) + 1
+            f.seek(0)
+            f.write(str(count))
+            f.truncate()
     return jsonify({"new_count": count})
+
 
 
 @app.route('/terms')
