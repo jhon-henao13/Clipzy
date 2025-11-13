@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template, send_from_directory
+from flask import Flask, request, jsonify, render_template, send_from_directory, Response
 import yt_dlp
 import os
 import time
@@ -197,9 +197,27 @@ def download_video():
 @app.route('/download/<filename>')
 def download_file(filename):
     file_path = os.path.join(DOWNLOAD_FOLDER, filename)
+
     if not os.path.exists(file_path):
         return jsonify({"error": "Archivo no encontrado."}), 404
-    return send_from_directory(DOWNLOAD_FOLDER, filename, as_attachment=True)
+    
+    def generate():
+        with open(file_path, "rb") as f:
+            while True:
+                chunk = f.read(4096)
+                if not chunk:
+                    break
+                yield chunk
+
+    return Response(
+        generate(),
+        mimetype="application/octet-stream",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}",
+            "X-Accel-Buffering": "no",
+            "Content-Length": str(os.path.getsize(file_path))
+        }
+    )
 
 
 # Contador simple
