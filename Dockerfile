@@ -32,5 +32,6 @@ RUN mkdir -p /app/downloads
 # Koyeb usa el puerto 8000 para el health check
 EXPOSE 8000
 
+
 # Comando de ejecución (compatible con Koyeb y Render)
-CMD bash -c "gunicorn --bind 0.0.0.0:${PORT:-8000} app:app --timeout 120"
+CMD gunicorn --bind 0.0.0.0:${PORT:-8000} app:app --timeout 300 --workers 1 --threads 2

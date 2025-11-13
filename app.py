@@ -74,7 +74,12 @@ def download_video():
 
     clean_old_files()
 
+    domain = re.findall(r"https?://([^/]+)/", url)
+    referer_domain = domain[0] if domain else "youtube.com"
+
     ydl_opts = {
+        'skip_download': False,
+        'age_limit': None,
         'outtmpl': os.path.join(DOWNLOAD_FOLDER, '%(title)s.%(ext)s'),
         'merge_output_format': 'mp4',
         'quiet': True,
@@ -90,7 +95,7 @@ def download_video():
         'http_headers': {
             'User-Agent': random.choice(user_agents),
             'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
-            'Referer': 'https://www.youtube.com/',
+            'Referer': f'https://{referer_domain}/',
             'Accept': '*/*',
             'Connection': 'keep-alive',
             'Upgrade-Insecure-Requests': '1',
@@ -98,9 +103,12 @@ def download_video():
         },
     }
 
+
     # Cookies si existen
     if os.path.exists(cookie_file_path):
         ydl_opts["cookiefile"] = cookie_file_path
+        ydl_opts["http_headers"]["Cookie"] = open(cookie_file_path, "r").read().strip()[:4000]
+
 
     # Formatos
     if format_type == 'audio':
