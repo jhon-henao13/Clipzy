@@ -108,6 +108,8 @@ def download_video():
     url = data.get("url")
     format_type = data.get("format", "best")
 
+    filename = None
+
     if not url:
         return jsonify({"error": "URL no proporcionada"}), 400
 
@@ -115,6 +117,7 @@ def download_video():
 
     temp_id = str(uuid.uuid4())
     output_path = os.path.join(DOWNLOAD_FOLDER, f"{temp_id}.%(ext)s")
+
 
     # Determinar formato
     if format_type == "audio":
@@ -124,6 +127,7 @@ def download_video():
             "preferredcodec": "mp3",
             "preferredquality": "0"
         }]
+
     elif format_type == "1080p":
         ytdl_format = "bestvideo[height<=1080]+bestaudio/best"
         postprocessors = []
@@ -152,13 +156,9 @@ def download_video():
             "User-Agent": random.choice(user_agents)
         },
         "noprogress": True,
-        "ignoreerrors": True
+        "ignoreerrors": False
     }
 
-    try:
-        filename = download_with_binary(url, output_path, cookies=cookie_file_path, user_agent=random.choice(user_agents), format_type=ytdl_format)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 
 
 
@@ -179,6 +179,10 @@ def download_video():
         try:
             with YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=True)
+
+                if info is None:
+                    return jsonify({"error": "No se pudo descargar el video"}), 500
+
                 filename = ydl.prepare_filename(info)
             print(f"✅ Video descargado usando formato: {fmt}")
             break  # si funciona, salimos del loop
@@ -197,9 +201,15 @@ def download_video():
         return jsonify({"error": err}), 500
 
 
-    new_name = f"video_{temp_id}.{filename.split('.')[-1]}"
-    new_path = os.path.join(DOWNLOAD_FOLDER, new_name)
-    os.rename(filename, new_path)
+    if filename and os.path.exists(filename):
+        ext = os.path.splitext(filename)[1]  # Obtiene extensión real
+        new_name = f"video_{temp_id}{ext}"
+        new_path = os.path.join(DOWNLOAD_FOLDER, new_name)
+        os.rename(filename, new_path)
+    else:
+        return jsonify({"error": "No se pudo encontrar el archivo descargado."}), 500
+
+
 
     return jsonify({
         "success": True,
