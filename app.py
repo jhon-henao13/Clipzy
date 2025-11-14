@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify, render_template, send_from_directory, Response
-import yt_dlp
+from yt_dlp import YoutubeDL
 import os
 import time
 import random
@@ -134,7 +134,7 @@ def download_video():
         ydl_opts['format'] = 'bestvideo+bestaudio/best'
 
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
 
             raw_filename = ydl.prepare_filename(info)

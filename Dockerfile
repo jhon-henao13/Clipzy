@@ -21,7 +21,11 @@ WORKDIR /app
 # Copia requirements.txt e instala dependencias
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt && \
-    pip install -U yt-dlp gunicorn
+    # Instalar yt-dlp usando el binario oficial (siempre la versión más reciente)
+    RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp \
+        && chmod +x /usr/local/bin/yt-dlp \
+        && pip install --no-cache-dir gunicorn
+
 
 # Copia la aplicación completa
 COPY . .
