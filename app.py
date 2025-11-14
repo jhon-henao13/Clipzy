@@ -160,27 +160,49 @@ def download_video():
         formats_to_try += ["bestvideo+bestaudio/best", "bestaudio/best", "best"]
 
     info = None
-    last_error = None
+    last_error = "Sin errores"
     new_name = None
 
     for fmt in formats_to_try:
         ydl_opts["format"] = fmt
         try:
             with YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(url, download=True)
-                if not info:
-                    continue
+                try:
+                    info = ydl.extract_info(url, download=True)
+                except Exception as extract_e:
+                    last_error = str(extract_e)
+                    print(f"Extract error: {last_error[:80]}...")
+                    
+
+                    # Fallback: solo si es error de título (Pornhub)
+                    if "Unable to extract title" in last_error:
+                        fallback_opts = ydl_opts.copy()
+                        fallback_opts["extract_flat"] = True
+                        fallback_opts["ignoreerrors"] = True
+                        try:
+                            with YoutubeDL(fallback_opts) as ydl_flat:
+                                flat = ydl_flat.extract_info(url, download=False)
+                                if flat and flat.get("url"):
+                                    ydl_flat.download([flat["url"]])
+                                    info = flat  # Usa flat para thumbnail si hay
+                                    print("Fallback activado: descargando sin metadata")
+                                    break
+                        except Exception as fb_e:
+                            print(f"Fallback falló: {str(fb_e)[:80]}...")
+                            continue  # Siguiente formato
+                    else:
+                        continue
 
                 # Buscar archivo descargado
-                time.sleep(1)  # Espera breve
+                time.sleep(1)
                 files = [f for f in os.listdir(DOWNLOAD_FOLDER) if f.startswith(temp_id)]
-                if not files:
-                    continue
-
-                old_path = os.path.join(DOWNLOAD_FOLDER, files[0])
-                ext = os.path.splitext(old_path)[1]
-                new_name = f"video_{temp_id}{ext}"
-                os.rename(old_path, os.path.join(DOWNLOAD_FOLDER, new_name))
+                if files:
+                    old_path = os.path.join(DOWNLOAD_FOLDER, files[0])
+                    ext = os.path.splitext(old_path)[1]
+                    new_name = f"video_{temp_id}{ext}"
+                    os.rename(old_path, os.path.join(DOWNLOAD_FOLDER, new_name))
+                    print(f"Archivo renombrado: {new_name}")
+                    break  # Éxito: salir del loop
 
             print(f"Descargado con formato: {fmt}")
             break
