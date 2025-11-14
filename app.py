@@ -5,6 +5,9 @@ import time
 import random
 import unicodedata
 import re
+import uuid
+import subprocess
+
 
 app = Flask(__name__)
 
@@ -74,124 +77,94 @@ def download_video():
 
     clean_old_files()
 
-    domain = re.findall(r"https?://([^/]+)/", url)
-    referer_domain = domain[0] if domain else "youtube.com"
+    temp_id = str(uuid.uuid4())
+    output_path = os.path.join(DOWNLOAD_FOLDER, f"{temp_id}.%(ext)s")
 
+    # Determinar formato
+    if format_type == "audio":
+        ytdl_format = "bestaudio/best"
+        postprocessors = [{
+            "key": "FFmpegExtractAudio",
+            "preferredcodec": "mp3",
+            "preferredquality": "0"
+        }]
+    elif format_type == "1080p":
+        ytdl_format = "bestvideo[height<=1080]+bestaudio/best"
+        postprocessors = []
+    elif format_type == "720p":
+        ytdl_format = "bestvideo[height<=720]+bestaudio/best"
+        postprocessors = []
+    else:
+        ytdl_format = "bestvideo+bestaudio/best"
+        postprocessors = []
+
+    # Configuración de yt-dlp
     ydl_opts = {
-        'skip_download': False,
-        'age_limit': None,
-        'outtmpl': os.path.join(DOWNLOAD_FOLDER, '%(title)s.%(ext)s'),
-        'merge_output_format': 'mp4',
-        'quiet': True,
-        'progress_hooks': [lambda d: print(f"Progreso: {d.get('status')}")],
-        'noplaylist': True,
-        'continuedl': True,
-        'nocheckcertificate': True,
-        'geo_bypass': True,
-        'retries': 3,
-        'fragment_retries': 3,
-        'extractor_retries': 3,
-        'ignoreerrors': False,
-        'http_headers': {
-            'User-Agent': random.choice(user_agents),
-            'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
-            'Referer': f'https://{referer_domain}/',
-            'Accept': '*/*',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
-            'DNT': '1',
+        "outtmpl": output_path,
+        "format": ytdl_format,
+        "merge_output_format": "mp4",
+        "noplaylist": True,
+        "geo_bypass": True,
+        "retries": 5,
+        "fragment_retries": 5,
+        "cookiefile": cookie_file_path if os.path.exists(cookie_file_path) else None,
+        "postprocessors": postprocessors,
+        "quiet": True,
+        "no_warnings": True,
+        "progress_hooks": [],
+        "http_headers": {
+            "User-Agent": random.choice(user_agents)
         },
+        "noprogress": True,
+        "ignoreerrors": True
     }
 
 
-    # Cookies si existen
-    if os.path.exists(cookie_file_path):
-        ydl_opts["cookiefile"] = cookie_file_path
-        ydl_opts["http_headers"]["Cookie"] = open(cookie_file_path, "r").read().strip()[:4000]
+    # Lista de formatos fallback: intenta varias opciones hasta que funcione
+    fallback_formats = [
+        ytdl_format,          # formato principal según la selección
+        "bestvideo+bestaudio/best",  # fallback general video+audio
+        "bestaudio/best",     # fallback solo audio
+        "best"                # último recurso
+    ]
 
 
-    # Formatos
-    if format_type == 'audio':
-        ydl_opts.update({
-            'format': 'bestaudio/best',
-            'prefer_ffmpeg': True,
-            'postprocessors': [{
-                'key': 'FFmpegExtractAudio',
-                'preferredcodec': 'mp3',
-                'preferredquality': '320',
-            }],
-        })
+    info = None
+    last_error = None
 
+    for fmt in fallback_formats:
+        ydl_opts["format"] = fmt
+        try:
+            with YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=True)
+                filename = ydl.prepare_filename(info)
+            print(f"✅ Video descargado usando formato: {fmt}")
+            break  # si funciona, salimos del loop
+        except Exception as e:
+            last_error = e
+            continue
 
-
-    elif format_type == '1080p':
-        ydl_opts['format'] = 'bestvideo[height<=1080]+bestaudio/best'
-    elif format_type == '720p':
-        ydl_opts['format'] = 'bestvideo[height<=720]+bestaudio/best'
-    elif format_type == '480p':
-        ydl_opts['format'] = 'bestvideo[height<=480]+bestaudio/best'
-    else:
-        ydl_opts['format'] = 'bestvideo+bestaudio/best'
-
-    try:
-        with YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-
-            raw_filename = ydl.prepare_filename(info)
-            base, ext = os.path.splitext(raw_filename)
-            safe_name = sanitize_filename(info.get("title", "video"))
-
-            # Detectar el archivo final (yt-dlp puede cambiar la extensión después de postprocesar)
-            final_file = None
-                
-            if "requested_downloads" in info and info["requested_downloads"]:
-                final_file = info["requested_downloads"][0]["filepath"]
-            else:
-                final_file = ydl.prepare_filename(info)
-            
-            # Asegurarse de que el archivo existe
-            if not os.path.exists(final_file):
-                # Intentar encontrar archivo con nombre similar
-                base_name = sanitize_filename(info.get("title", "video"))
-                matches = [f for f in os.listdir(DOWNLOAD_FOLDER) if base_name in f]
-                if matches:
-                    final_file = os.path.join(DOWNLOAD_FOLDER, matches[0])
-                else:
-                    raise FileNotFoundError("No se encontró el archivo final tras la conversión con ffmpeg.")
-
-
-                
-            if not final_file:
-                raise FileNotFoundError("No se encontró el archivo final tras la conversión con ffmpeg.")
-
-            # Renombrar al nombre limpio
-            new_path = os.path.join(DOWNLOAD_FOLDER, f"{safe_name}{os.path.splitext(final_file)[1]}")
-            
-            if final_file != new_path:
-                os.rename(final_file, new_path)
-
-
-
-
-        return jsonify({
-            "success": True,
-            "title": info.get("title"),
-            "filename": safe_name,
-            "thumbnail": info.get("thumbnail"),
-            "download_url": f"/download/{os.path.basename(new_path)}"
-
-
-        })
-
-    except Exception as e:
-        err = str(e)
+    if info is None:
+        err = str(last_error)
         if "HTTP Error 403" in err:
-            err = "YouTube bloqueó temporalmente esta descarga. Espera unos minutos o usa cookies válidas."
+            err = "YouTube bloqueó temporalmente esta descarga. Usa cookies válidas."
         elif "Sign in to confirm you’re not a bot" in err:
             err = "Este video requiere inicio de sesión o verificación de edad."
         elif "Video unavailable" in err:
             err = "El video no está disponible en tu región o fue eliminado."
         return jsonify({"error": err}), 500
+
+
+    new_name = f"video_{temp_id}.{filename.split('.')[-1]}"
+    new_path = os.path.join(DOWNLOAD_FOLDER, new_name)
+    os.rename(filename, new_path)
+
+    return jsonify({
+        "success": True,
+        "title": info.get("title", "Video descargado"),
+        "thumbnail": info.get("thumbnail", ""),
+        "download_url": f"/download/{new_name}"
+    })
 
 
 @app.route('/download/<filename>')
