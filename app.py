@@ -172,9 +172,7 @@ def download_video():
                 except Exception as extract_e:
                     last_error = str(extract_e)
                     print(f"Extract error: {last_error[:80]}...")
-                    
 
-                    # Fallback: solo si es error de título (Pornhub)
                     if "Unable to extract title" in last_error:
                         fallback_opts = ydl_opts.copy()
                         fallback_opts["extract_flat"] = True
@@ -184,29 +182,41 @@ def download_video():
                                 flat = ydl_flat.extract_info(url, download=False)
                                 if flat and flat.get("url"):
                                     ydl_flat.download([flat["url"]])
-                                    info = flat  # Usa flat para thumbnail si hay
+                                    info = flat
                                     print("Fallback activado: descargando sin metadata")
-
-                                    # === BUSCAR Y RENOMBRAR ARCHIVO DESPUÉS DEL FALLBACK ===
-                                    time.sleep(1)
-                                    files = [f for f in os.listdir(DOWNLOAD_FOLDER) if f.startswith(temp_id)]
-                                    if files:
-                                        old_path = os.path.join(DOWNLOAD_FOLDER, files[0])
-                                        ext = os.path.splitext(old_path)[1]
-                                        new_name = f"video_{temp_id}{ext}"
-                                        os.rename(old_path, os.path.join(DOWNLOAD_FOLDER, new_name))
-                                        print(f"Archivo renombrado: {new_name}")
-                                        break  # ÉXITO: salir del loop
                         except Exception as fb_e:
                             print(f"Fallback falló: {str(fb_e)[:80]}...")
-                            continue  # Siguiente formato
+                            continue
                     else:
                         continue
+
+                # === FLUJO NORMAL: TikTok, YouTube, etc. ===
+                time.sleep(1)
+                files = [f for f in os.listdir(DOWNLOAD_FOLDER) if f.startswith(temp_id)]
+                if files:
+                    old_path = os.path.join(DOWNLOAD_FOLDER, files[0])
+                    ext = os.path.splitext(old_path)[1]
+                    new_name = f"video_{temp_id}{ext}"
+                    os.rename(old_path, os.path.join(DOWNLOAD_FOLDER, new_name))
+                    print(f"Archivo renombrado (normal): {new_name}")
+                    break
+
 
         except Exception as e:
             last_error = str(e)
             print(f"Falló {fmt}: {last_error[:80]}...")
             continue
+
+    # === BÚSQUEDA FINAL: Pornhub fallback ===
+    time.sleep(2)
+    files = [f for f in os.listdir(DOWNLOAD_FOLDER) if f.startswith(temp_id)]
+    if files and not new_name:
+        old_path = os.path.join(DOWNLOAD_FOLDER, files[0])
+        ext = os.path.splitext(old_path)[1]
+        new_name = f"video_{temp_id}{ext}"
+        os.rename(old_path, os.path.join(DOWNLOAD_FOLDER, new_name))
+        print(f"Archivo renombrado (final): {new_name}")
+        
 
     if not info or not new_name:
         err = "Fallo en todos los formatos."
