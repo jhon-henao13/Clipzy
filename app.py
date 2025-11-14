@@ -7,6 +7,8 @@ import unicodedata
 import re
 import uuid
 import subprocess
+import tempfile
+import threading
 
 
 app = Flask(__name__)
@@ -19,14 +21,12 @@ user_agents = [
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:133.0) Gecko/20100101 Firefox/133.0',
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
 ]
 
 cookie_file_path = "youtube_cookies.txt"
 
 # --- Soporte para cookies desde variables de entorno ---
-import tempfile
-
-# Si existe la variable YT_COOKIES en el entorno, la guardamos en un archivo temporal
 yt_cookies_env = os.getenv("YT_COOKIES")
 
 if yt_cookies_env:
@@ -51,50 +51,17 @@ def sanitize_filename(filename):
 def clean_old_files(max_age_seconds=3600):
     """Elimina archivos viejos"""
     now = time.time()
-    for filename in os.listdir(DOWNLOAD_FOLDER):
-        path = os.path.join(DOWNLOAD_FOLDER, filename)
-        if os.path.isfile(path) and now - os.path.getmtime(path) > max_age_seconds:
-            try:
-                os.remove(path)
-                print(f"🧹 Archivo eliminado: {filename}")
-            except Exception as e:
-                print(f"⚠️ Error al eliminar {filename}: {e}")
-
-
-
-def download_with_binary(url, output_path, cookies=None, user_agent=None, format_type="best"):
-    cmd = [
-        "/usr/local/bin/yt-dlp",
-        "-o", output_path,
-        "-f", format_type,
-        "--merge-output-format", "mp4",
-        "--no-playlist",
-        "--geo-bypass",
-        "--retries", "5",
-        "--fragment-retries", "5",
-        "--no-warnings",
-        "--quiet"
-    ]
-    
-    if cookies and os.path.exists(cookies):
-        cmd += ["--cookies", cookies]
-    
-    if user_agent:
-        cmd += ["--user-agent", user_agent]
-    
-    result = subprocess.run(cmd + [url], capture_output=True, text=True)
-    
-    if result.returncode != 0:
-        raise Exception(result.stderr)
-    
-    # Extraer el nombre del archivo descargado
-    output_file = None
-    for line in result.stdout.splitlines():
-        if "[download] Destination:" in line:
-            output_file = line.split(":")[-1].strip()
-            break
-    return output_file
-
+    try:
+        for filename in os.listdir(DOWNLOAD_FOLDER):
+            path = os.path.join(DOWNLOAD_FOLDER, filename)
+            if os.path.isfile(path) and now - os.path.getmtime(path) > max_age_seconds:
+                try:
+                    os.remove(path)
+                    print(f"🧹 Archivo eliminado: {filename}")
+                except Exception as e:
+                    print(f"⚠️ Error al eliminar {filename}: {e}")
+    except Exception as e:
+        print(f"⚠️ Error en clean_old_files: {e}")
 
 
 @app.route('/')
@@ -133,96 +100,132 @@ def download_video():
         ytdl_format = "bestvideo+bestaudio/best"
         postprocessors = []
 
-    # Configuración base
+    # Configuración base UNIVERSAL - Funciona con TODO
     ydl_opts = {
         "outtmpl": output_path,
         "merge_output_format": "mp4",
         "noplaylist": True,
         "geo_bypass": True,
         "geo_bypass_country": "DE",
-        "retries": 5,
-        "fragment_retries": 5,
-        "extractor_retries": 3,
-        "sleep_interval": 1,
+        "retries": 8,  # ⬆️ Más reintentos
+        "fragment_retries": 8,  # ⬆️ Más reintentos en fragmentos
+        "extractor_retries": 5,  # ⬆️ Más reintentos en extractor
+        "socket_timeout": 60,  # ✅ Timeout más largo
+        "sleep_interval": 2,  # ⬆️ Esperar más entre solicitudes
+        "sleep_interval_requests": 2,  # ✅ Espera entre requests
         "cookiefile": cookie_file_path if os.path.exists(cookie_file_path) else None,
         "postprocessors": postprocessors,
-        "quiet": False,  # Cambia a True después de probar
+        "quiet": False,
         "no_warnings": False,
         "http_headers": {"User-Agent": random.choice(user_agents)},
         "noprogress": True,
-        "ignoreerrors": True,  # Clave: ignora errores de metadata (como título en Pornhub)
-        "extractor_args": {"pornhub": {"skip": ["geo-restriction"]}}
+        "ignoreerrors": True,  # ✅ Crítico
+        "skip_unavailable_fragments": True,  # ✅ Crítico para Pornhub
+        "allow_unplayable_formats": True,  # ✅ Permite formatos no jugables (importante para algunos sitios)
+        "no_check_certificate": True,  # ✅ Desactiva verificación SSL en caso de problemas
+        "prefer_free_formats": False,  # ✅ Permite formatos no libres
+        "extractor_args": {
+            "pornhub": {
+                "skip": ["geo-restriction"],
+                "skip_login": True
+            },
+            "youtube": {"skip": ["hls", "dash"]},
+            "instagram": {"check_comments": False}
+        }
     }
 
-    # Intentar formatos: principal PRIMERO
+    # Intentar formatos: principal PRIMERO, luego fallbacks
     formats_to_try = [ytdl_format]
     if format_type != "best":
         formats_to_try += ["bestvideo+bestaudio/best", "bestaudio/best", "best"]
 
     info = None
-    last_error = "Sin errores"
     new_name = None
+    download_success = False
 
-    for fmt in formats_to_try:
+    # ✅ FLUJO DE DESCARGA CON REINTENTOS MEJORADOS
+    for attempt, fmt in enumerate(formats_to_try):
         ydl_opts["format"] = fmt
+        print(f"📥 Intento {attempt + 1}/{len(formats_to_try)}: Formato '{fmt}' para URL: {url[:50]}...")
+        
         try:
             with YoutubeDL(ydl_opts) as ydl:
-                try:
-                    info = ydl.extract_info(url, download=True)
-                except Exception as extract_e:
-                    last_error = str(extract_e)
-                    print(f"Extract error: {last_error[:80]}...")
+                info = ydl.extract_info(url, download=True)
+                download_success = True
+                print(f"✅ Descarga exitosa con formato: {fmt}")
+                break
+            
+        except Exception as e:
+            error_msg = str(e)
+            print(f"⚠️ Intento {attempt + 1} falló: {error_msg[:100]}...")
+            time.sleep(1)  # Esperar antes de siguiente intento
+            continue
 
-                    if "Unable to extract title" in last_error:
-                        print("Pornhub: error de título, descargando sin metadata")
-                        ydl_opts["ignoreerrors"] = True
-                        try:
-                            info = ydl.extract_info(url, download=True)
-                            print("Pornhub: descarga completada sin metadata")
-                        except Exception as e:
-                            print(f"Pornhub: error final: {str(e)[:80]}...")
-                            continue
-                    else:
-                        continue
-
-                # === FLUJO NORMAL: TikTok, YouTube, etc. ===
-                time.sleep(1)
-                files = [f for f in os.listdir(DOWNLOAD_FOLDER) if f.startswith(temp_id)]
-                if files:
-                    old_path = os.path.join(DOWNLOAD_FOLDER, files[0])
+    # ✅ BÚSQUEDA DE ARCHIVOS DESCARGADOS
+    if download_success or info:
+        # Esperar más tiempo para Pornhub
+        time.sleep(3)
+        
+        try:
+            files = [f for f in os.listdir(DOWNLOAD_FOLDER) if f.startswith(temp_id)]
+            
+            if files:
+                old_path = os.path.join(DOWNLOAD_FOLDER, files[0])
+                if os.path.exists(old_path) and os.path.getsize(old_path) > 1024:  # Verificar que no esté vacío
                     ext = os.path.splitext(old_path)[1]
                     new_name = f"video_{temp_id}{ext}"
                     os.rename(old_path, os.path.join(DOWNLOAD_FOLDER, new_name))
-                    print(f"Archivo renombrado (normal): {new_name}")
-                    break
-
-
+                    print(f"✅ Archivo descargado correctamente: {new_name}")
+                else:
+                    print(f"⚠️ Archivo descargado pero está vacío o muy pequeño")
         except Exception as e:
-            last_error = str(e)
-            print(f"Falló {fmt}: {last_error[:80]}...")
-            continue
+            print(f"⚠️ Error al buscar archivos: {e}")
 
-    # === BÚSQUEDA FINAL: Pornhub fallback ===
-    time.sleep(4)
-    files = [f for f in os.listdir(DOWNLOAD_FOLDER) if f.startswith(temp_id)]
-    if files and not new_name:
-        old_path = os.path.join(DOWNLOAD_FOLDER, files[0])
-        ext = os.path.splitext(old_path)[1]
-        new_name = f"video_{temp_id}{ext}"
-        os.rename(old_path, os.path.join(DOWNLOAD_FOLDER, new_name))
-        print(f"Archivo renombrado (final): {new_name}")
+    # ✅ BÚSQUEDA FINAL: Si no se encontró, esperar más y buscar nuevamente
+    if not new_name:
+        print("⏳ Esperando más tiempo para búsqueda final...")
+        time.sleep(3)
         
+        try:
+            files = [f for f in os.listdir(DOWNLOAD_FOLDER) if f.startswith(temp_id)]
+            
+            if files:
+                old_path = os.path.join(DOWNLOAD_FOLDER, files[0])
+                
+                # Esperar a que el archivo esté completamente escrito
+                for _ in range(5):
+                    if os.path.exists(old_path):
+                        size = os.path.getsize(old_path)
+                        if size > 1024:
+                            time.sleep(1)
+                            break
+                    time.sleep(1)
+                
+                if os.path.exists(old_path) and os.path.getsize(old_path) > 1024:
+                    ext = os.path.splitext(old_path)[1]
+                    new_name = f"video_{temp_id}{ext}"
+                    os.rename(old_path, os.path.join(DOWNLOAD_FOLDER, new_name))
+                    print(f"✅ Archivo recuperado en búsqueda final: {new_name}")
+        except Exception as e:
+            print(f"⚠️ Error en búsqueda final: {e}")
 
-    if not info or not new_name:
-        err = "Fallo en todos los formatos."
-        if "Unable to extract title" in last_error:
-            err = "Pornhub: título no disponible (pero el video se descargó si hay archivo)."
+    # ✅ Respuesta final
+    if not new_name:
+        err = "❌ No se pudo descargar. Intenta con otra URL o después de unos minutos."
+        print(f"❌ Descarga fallida para: {url}")
         return jsonify({"error": err}), 500
+
+    title = "Video descargado"
+    thumbnail = ""
+    
+    if info:
+        title = info.get("title", "Video descargado")
+        thumbnail = info.get("thumbnail", "")
 
     return jsonify({
         "success": True,
-        "title": info.get("title", "Video descargado"),
-        "thumbnail": info.get("thumbnail", ""),
+        "title": title,
+        "thumbnail": thumbnail,
         "download_url": f"/download/{new_name}"
     })
 
@@ -255,6 +258,7 @@ def download_file(filename):
 
 # Contador simple
 counter_file = "counter.txt"
+counter_lock = threading.Lock()
 
 
 def initialize_counter():
@@ -265,23 +269,26 @@ def initialize_counter():
 
 @app.route('/api/counter')
 def get_counter():
-    with open(counter_file, "r") as f:
-        return jsonify({"visits": int(f.read())})
+    try:
+        with open(counter_file, "r") as f:
+            count = int(f.read())
+    except:
+        count = 0
+    return jsonify({"visits": count})
 
-
-import threading
-counter_lock = threading.Lock()
 
 @app.route('/api/increment', methods=['POST'])
 def increment_counter():
     with counter_lock:
-        with open(counter_file, "r+") as f:
-            count = int(f.read()) + 1
-            f.seek(0)
-            f.write(str(count))
-            f.truncate()
+        try:
+            with open(counter_file, "r+") as f:
+                count = int(f.read()) + 1
+                f.seek(0)
+                f.write(str(count))
+                f.truncate()
+        except:
+            count = 1
     return jsonify({"new_count": count})
-
 
 
 @app.route('/terms')
