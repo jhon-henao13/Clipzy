@@ -108,8 +108,6 @@ def download_video():
     url = data.get("url")
     format_type = data.get("format", "best")
 
-    filename = None
-
     if not url:
         return jsonify({"error": "URL no proporcionada"}), 400
 
@@ -118,101 +116,84 @@ def download_video():
     temp_id = str(uuid.uuid4())
     output_path = os.path.join(DOWNLOAD_FOLDER, f"{temp_id}.%(ext)s")
 
-
     # Determinar formato
     if format_type == "audio":
         ytdl_format = "bestaudio/best"
-        postprocessors = [{
-            "key": "FFmpegExtractAudio",
-            "preferredcodec": "mp3",
-            "preferredquality": "0"
-        }]
-
+        postprocessors = [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3", "preferredquality": "0"}]
     elif format_type == "1080p":
         ytdl_format = "bestvideo[height<=1080]+bestaudio/best"
         postprocessors = []
     elif format_type == "720p":
         ytdl_format = "bestvideo[height<=720]+bestaudio/best"
         postprocessors = []
+    elif format_type == "480p":
+        ytdl_format = "bestvideo[height<=480]+bestaudio/best"
+        postprocessors = []
     else:
         ytdl_format = "bestvideo+bestaudio/best"
         postprocessors = []
 
-    # Configuración de yt-dlp
+    # Configuración base
     ydl_opts = {
         "outtmpl": output_path,
-        "format": ytdl_format,
         "merge_output_format": "mp4",
         "noplaylist": True,
         "geo_bypass": True,
+        "geo_bypass_country": "DE",
         "retries": 5,
         "fragment_retries": 5,
+        "extractor_retries": 3,
+        "sleep_interval": 1,
         "cookiefile": cookie_file_path if os.path.exists(cookie_file_path) else None,
         "postprocessors": postprocessors,
-        "quiet": True,
-        "no_warnings": True,
-        "progress_hooks": [],
-        "http_headers": {
-            "User-Agent": random.choice(user_agents)
-        },
+        "quiet": False,  # Cambia a True después de probar
+        "no_warnings": False,
+        "http_headers": {"User-Agent": random.choice(user_agents)},
         "noprogress": True,
-        "ignoreerrors": False
+        "ignoreerrors": True,  # Clave: ignora errores de metadata (como título en Pornhub)
+        "extractor_args": {"pornhub": {"skip": ["geo-restriction"]}}
     }
 
-
-
-
-    # Lista de formatos fallback: intenta varias opciones hasta que funcione
-    fallback_formats = [
-        ytdl_format,          # formato principal según la selección
-        "bestvideo+bestaudio/best",  # fallback general video+audio
-        "bestaudio/best",     # fallback solo audio
-        "best"                # último recurso
-    ]
-
+    # Intentar formatos: principal PRIMERO
+    formats_to_try = [ytdl_format]
+    if format_type != "best":
+        formats_to_try += ["bestvideo+bestaudio/best", "bestaudio/best", "best"]
 
     info = None
     last_error = None
+    new_name = None
 
-    for fmt in fallback_formats:
+    for fmt in formats_to_try:
         ydl_opts["format"] = fmt
         try:
             with YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=True)
+                if not info:
+                    continue
 
-                if info is None:
-                    return jsonify({"error": "No se pudo descargar el video"}), 500
+                # Buscar archivo descargado
+                time.sleep(1)  # Espera breve
+                files = [f for f in os.listdir(DOWNLOAD_FOLDER) if f.startswith(temp_id)]
+                if not files:
+                    continue
 
-                # BUSCAR ARCHIVO GENERADO POR temp_id
-                downloaded_files = [f for f in os.listdir(DOWNLOAD_FOLDER) if f.startswith(temp_id) and os.path.isfile(os.path.join(DOWNLOAD_FOLDER, f))]
-                
-                if not downloaded_files:
-                    return jsonify({"error": "No se pudo encontrar el archivo descargado."}), 500
-
-                # Tomar el archivo (debería ser solo uno)
-                old_filename = os.path.join(DOWNLOAD_FOLDER, downloaded_files[0])
-                ext = os.path.splitext(old_filename)[1]
+                old_path = os.path.join(DOWNLOAD_FOLDER, files[0])
+                ext = os.path.splitext(old_path)[1]
                 new_name = f"video_{temp_id}{ext}"
-                new_path = os.path.join(DOWNLOAD_FOLDER, new_name)
-                os.rename(old_filename, new_path)
+                os.rename(old_path, os.path.join(DOWNLOAD_FOLDER, new_name))
 
-                filename = new_path  # para compatibilidad posterior
-
-            print(f"Video descargado usando formato: {fmt}")
+            print(f"Descargado con formato: {fmt}")
             break
 
         except Exception as e:
-            last_error = e
+            last_error = str(e)
+            print(f"Falló {fmt}: {last_error[:80]}...")
             continue
 
-    if info is None:
-        err = str(last_error)
-        if "HTTP Error 403" in err:
-            err = "YouTube bloqueó temporalmente esta descarga. Usa cookies válidas."
-        elif "Sign in to confirm you’re not a bot" in err:
-            err = "Este video requiere inicio de sesión o verificación de edad."
-        elif "Video unavailable" in err:
-            err = "El video no está disponible en tu región o fue eliminado."
+    if not info or not new_name:
+        err = "Fallo en todos los formatos."
+        if "Unable to extract title" in last_error:
+            err = "Pornhub: título no disponible (pero el video se descargó si hay archivo)."
         return jsonify({"error": err}), 500
 
     return jsonify({
