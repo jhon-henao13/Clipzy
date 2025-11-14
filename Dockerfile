@@ -4,8 +4,6 @@ FROM python:3.12-slim
 # Evita buffering
 ENV PYTHONUNBUFFERED=1
 
-
-
 # Instala ffmpeg y dependencias necesarias
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
@@ -14,28 +12,25 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-
-# Crea carpeta de trabajo
+# Carpeta de trabajo
 WORKDIR /app
 
-# Copia requirements.txt e instala dependencias
+# Instalar dependencias de Python
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt && \
-    # Instalar yt-dlp usando el binario oficial (siempre la versión más reciente)
-    RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp \
-        && chmod +x /usr/local/bin/yt-dlp \
-        && pip install --no-cache-dir gunicorn
+RUN pip install --no-cache-dir -r requirements.txt
 
+# Instalar la versión MÁS RECIENTE de yt-dlp (binario oficial)
+RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp \
+    -o /usr/local/bin/yt-dlp && chmod +x /usr/local/bin/yt-dlp
 
-# Copia la aplicación completa
+# Copiar la aplicación
 COPY . .
 
-# Crea carpeta de descargas
+# Crear carpeta de descargas
 RUN mkdir -p /app/downloads
 
-# Koyeb usa el puerto 8000 para el health check
+# Koyeb usa el puerto 8000
 EXPOSE 8000
 
-
-# Comando de ejecución (compatible con Koyeb y Render)
+# Ejecutar con Gunicorn
 CMD gunicorn --bind 0.0.0.0:${PORT:-8000} app:app --timeout 300 --workers 1 --threads 2
