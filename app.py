@@ -186,26 +186,22 @@ def download_video():
                                     ydl_flat.download([flat["url"]])
                                     info = flat  # Usa flat para thumbnail si hay
                                     print("Fallback activado: descargando sin metadata")
-                                    break
+
+                                    # === BUSCAR Y RENOMBRAR ARCHIVO DESPUÉS DEL FALLBACK ===
+                                    time.sleep(1)
+                                    files = [f for f in os.listdir(DOWNLOAD_FOLDER) if f.startswith(temp_id)]
+                                    if files:
+                                        old_path = os.path.join(DOWNLOAD_FOLDER, files[0])
+                                        ext = os.path.splitext(old_path)[1]
+                                        new_name = f"video_{temp_id}{ext}"
+                                        os.rename(old_path, os.path.join(DOWNLOAD_FOLDER, new_name))
+                                        print(f"Archivo renombrado: {new_name}")
+                                        break  # ÉXITO: salir del loop
                         except Exception as fb_e:
                             print(f"Fallback falló: {str(fb_e)[:80]}...")
                             continue  # Siguiente formato
                     else:
                         continue
-
-                # Buscar archivo descargado
-                time.sleep(1)
-                files = [f for f in os.listdir(DOWNLOAD_FOLDER) if f.startswith(temp_id)]
-                if files:
-                    old_path = os.path.join(DOWNLOAD_FOLDER, files[0])
-                    ext = os.path.splitext(old_path)[1]
-                    new_name = f"video_{temp_id}{ext}"
-                    os.rename(old_path, os.path.join(DOWNLOAD_FOLDER, new_name))
-                    print(f"Archivo renombrado: {new_name}")
-                    break  # Éxito: salir del loop
-
-            print(f"Descargado con formato: {fmt}")
-            break
 
         except Exception as e:
             last_error = str(e)
