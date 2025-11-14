@@ -174,18 +174,13 @@ def download_video():
                     print(f"Extract error: {last_error[:80]}...")
 
                     if "Unable to extract title" in last_error:
-                        fallback_opts = ydl_opts.copy()
-                        fallback_opts["extract_flat"] = True
-                        fallback_opts["ignoreerrors"] = True
+                        print("Pornhub: error de título, descargando sin metadata")
+                        ydl_opts["ignoreerrors"] = True
                         try:
-                            with YoutubeDL(fallback_opts) as ydl_flat:
-                                flat = ydl_flat.extract_info(url, download=False)
-                                if flat and flat.get("url"):
-                                    ydl_flat.download([flat["url"]])
-                                    info = flat
-                                    print("Fallback activado: descargando sin metadata")
-                        except Exception as fb_e:
-                            print(f"Fallback falló: {str(fb_e)[:80]}...")
+                            info = ydl.extract_info(url, download=True)
+                            print("Pornhub: descarga completada sin metadata")
+                        except Exception as e:
+                            print(f"Pornhub: error final: {str(e)[:80]}...")
                             continue
                     else:
                         continue
@@ -208,7 +203,7 @@ def download_video():
             continue
 
     # === BÚSQUEDA FINAL: Pornhub fallback ===
-    time.sleep(2)
+    time.sleep(4)
     files = [f for f in os.listdir(DOWNLOAD_FOLDER) if f.startswith(temp_id)]
     if files and not new_name:
         old_path = os.path.join(DOWNLOAD_FOLDER, files[0])
