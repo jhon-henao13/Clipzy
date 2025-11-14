@@ -183,9 +183,24 @@ def download_video():
                 if info is None:
                     return jsonify({"error": "No se pudo descargar el video"}), 500
 
-                filename = ydl.prepare_filename(info)
-            print(f"✅ Video descargado usando formato: {fmt}")
-            break  # si funciona, salimos del loop
+                # BUSCAR ARCHIVO GENERADO POR temp_id
+                downloaded_files = [f for f in os.listdir(DOWNLOAD_FOLDER) if f.startswith(temp_id) and os.path.isfile(os.path.join(DOWNLOAD_FOLDER, f))]
+                
+                if not downloaded_files:
+                    return jsonify({"error": "No se pudo encontrar el archivo descargado."}), 500
+
+                # Tomar el archivo (debería ser solo uno)
+                old_filename = os.path.join(DOWNLOAD_FOLDER, downloaded_files[0])
+                ext = os.path.splitext(old_filename)[1]
+                new_name = f"video_{temp_id}{ext}"
+                new_path = os.path.join(DOWNLOAD_FOLDER, new_name)
+                os.rename(old_filename, new_path)
+
+                filename = new_path  # para compatibilidad posterior
+
+            print(f"Video descargado usando formato: {fmt}")
+            break
+
         except Exception as e:
             last_error = e
             continue
@@ -199,17 +214,6 @@ def download_video():
         elif "Video unavailable" in err:
             err = "El video no está disponible en tu región o fue eliminado."
         return jsonify({"error": err}), 500
-
-
-    if filename and os.path.exists(filename):
-        ext = os.path.splitext(filename)[1]  # Obtiene extensión real
-        new_name = f"video_{temp_id}{ext}"
-        new_path = os.path.join(DOWNLOAD_FOLDER, new_name)
-        os.rename(filename, new_path)
-    else:
-        return jsonify({"error": "No se pudo encontrar el archivo descargado."}), 500
-
-
 
     return jsonify({
         "success": True,
