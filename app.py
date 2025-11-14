@@ -61,6 +61,42 @@ def clean_old_files(max_age_seconds=3600):
                 print(f"⚠️ Error al eliminar {filename}: {e}")
 
 
+
+def download_with_binary(url, output_path, cookies=None, user_agent=None, format_type="best"):
+    cmd = [
+        "/usr/local/bin/yt-dlp",
+        "-o", output_path,
+        "-f", format_type,
+        "--merge-output-format", "mp4",
+        "--noplaylist",
+        "--geo-bypass",
+        "--retries", "5",
+        "--fragment-retries", "5",
+        "--no-warnings",
+        "--quiet"
+    ]
+    
+    if cookies and os.path.exists(cookies):
+        cmd += ["--cookies", cookies]
+    
+    if user_agent:
+        cmd += ["--user-agent", user_agent]
+    
+    result = subprocess.run(cmd + [url], capture_output=True, text=True)
+    
+    if result.returncode != 0:
+        raise Exception(result.stderr)
+    
+    # Extraer el nombre del archivo descargado
+    output_file = None
+    for line in result.stdout.splitlines():
+        if "[download] Destination:" in line:
+            output_file = line.split(":")[-1].strip()
+            break
+    return output_file
+
+
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -118,6 +154,12 @@ def download_video():
         "noprogress": True,
         "ignoreerrors": True
     }
+
+    try:
+        filename = download_with_binary(url, output_path, cookies=cookie_file_path, user_agent=random.choice(user_agents), format_type=ytdl_format)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 
     # Lista de formatos fallback: intenta varias opciones hasta que funcione
