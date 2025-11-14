@@ -68,7 +68,7 @@ def download_with_binary(url, output_path, cookies=None, user_agent=None, format
         "-o", output_path,
         "-f", format_type,
         "--merge-output-format", "mp4",
-        "--noplaylist",
+        "--no-playlist",
         "--geo-bypass",
         "--retries", "5",
         "--fragment-retries", "5",
