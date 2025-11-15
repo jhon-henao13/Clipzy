@@ -19,7 +19,7 @@ WORKDIR /app
 # Copiar requirements y actualizar yt-dlp a la última versión
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install --upgrade yt-dlp
+RUN pip install --upgrade --force-reinstall "git+https://github.com/yt-dlp/yt-dlp.git"
 
 # add EJS challenge solver so yt-dlp can solve YouTube signatures
 RUN pip install --no-cache-dir yt-dlp-ejs
