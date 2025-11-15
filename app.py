@@ -109,8 +109,8 @@ def download_video():
         "noplaylist": True,
         "geo_bypass": True,
         "geo_bypass_country": "US",  # Cambiar a US
-        "source_address": "0.0.0.0",  # Añadir
-        "force_generic_extractor": False,  # Añadir
+        
+        
         "retries": 10,
         "fragment_retries": 10,
         "extractor_retries": 15,
@@ -139,14 +139,9 @@ def download_video():
         # ✅ CAMBIO 3: Configuración YouTube mejorada
         "extractor_args": {
             "youtube": {
-                "player_client": ["ios", "web"],  # Usar cliente IOS como fallback
-                "skip": ["hls"],
+                "player_client": ["android_creator"],
             },
-            "pinterest": {
-                "api_token": None,
-            },
-            "pornhub": {"age_gate": True, "skip": ["geo-restriction"], "skip_login": True},
-            "instagram": {"check_comments": False},
+            "pornhub": {"age_gate": True, "skip": ["geo-restriction"], "skip_login": True},       
         }
     }
 
