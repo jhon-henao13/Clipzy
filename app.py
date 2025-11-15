@@ -115,21 +115,26 @@ def download_video():
         "sleep_interval_requests": 2,  # ✅ Espera entre requests
         "cookiefile": cookie_file_path if os.path.exists(cookie_file_path) else None,
         "postprocessors": postprocessors,
-        "no_warnings": True,
-        "http_headers": {"User-Agent": random.choice(user_agents)},
-        "impersonate": "chrome",
-        "player_client": ["web", "android"],
-        "player_js": True,
+        "no_warnings": False,
+        "quiet": False,
+        "http_headers": {
+            "User-Agent": random.choice(user_agents),
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5",
+            "Accept-Encoding": "gzip, deflate",
+            "Connection": "keep-alive",
+        },
+        "player_client": "web",
         "noprogress": True,
-        "ignoreerrors": True,  # ✅ Crítico
-        "skip_unavailable_fragments": True,  # ✅ Crítico para Pornhub
+        "ignoreerrors": True,
+        "skip_unavailable_fragments": True,
         "allow_unplayable_formats": True,  # ✅ Permite formatos no jugables (importante para algunos sitios)
         "no_check_certificate": True,  # ✅ Desactiva verificación SSL en caso de problemas
         "prefer_free_formats": False,  # ✅ Permite formatos no libres
         "extractor_args": {
             "pornhub": {"age_gate": True, "skip": ["geo-restriction"], "skip_login": True},
             "instagram": {"check_comments": False},
-            "youtube": {"skip": ["hls", "dash"], "player_skip": ["js"]},
+            "youtube": {"skip": ["hls", "dash"]}
         }
     }
 

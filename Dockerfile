@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install --upgrade yt-dlp
 
 # Después de pip install yt-dlp
-RUN pip install --no-cache-dir "curl_cffi"
+RUN pip install --no-cache-dir "curl_cffi[all]"
 
 
 # Instalar binario más reciente (opcional)
