@@ -22,19 +22,6 @@ RUN pip install --upgrade yt-dlp
 RUN pip install --no-cache-dir "curl_cffi"
 
 
-# La instalación de EJS está bien, pero falta **node** (runtime JS)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl nodejs && rm -rf /var/lib/apt/lists/* \
- && curl -fsSL https://github.com/yt-dlp/yt-dlp-ejs/releases/latest/download/yt-dlp-ejs.tar.gz \
-    | tar -xz -C /usr/local/lib/node_modules \
- && ln -s /usr/local/lib/node_modules/yt-dlp-ejs/bin/yt-dlp-ejs /usr/local/bin/yt-dlp-ejs \
- && echo 'export PATH="/usr/local/bin:$PATH"' >> /etc/profile \
- && echo 'export NODE_PATH="/usr/local/lib/node_modules"' >> /etc/profile
-
-# ← AGREGA ESTO:
-ENV PATH="/usr/local/bin:$PATH"
-ENV NODE_PATH="/usr/local/lib/node_modules"
-
 # Instalar binario más reciente (opcional)
 RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp \
     -o /usr/local/bin/yt-dlp && chmod +x /usr/local/bin/yt-dlp
