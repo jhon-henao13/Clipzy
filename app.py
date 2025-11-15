@@ -109,8 +109,6 @@ def download_video():
         "noplaylist": True,
         "geo_bypass": True,
         "geo_bypass_country": "US",  # Cambiar a US
-        
-        
         "retries": 10,
         "fragment_retries": 10,
         "extractor_retries": 15,
@@ -139,9 +137,9 @@ def download_video():
         # ✅ CAMBIO 3: Configuración YouTube mejorada
         "extractor_args": {
             "youtube": {
-                "player_client": ["android_creator"],
+                "player_client": ["android"],
             },
-            "pornhub": {"age_gate": True, "skip": ["geo-restriction"], "skip_login": True},       
+            "pornhub": {"age_gate": True,},
         }
     }
 
@@ -162,9 +160,15 @@ def download_video():
         try:
             with YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=True)
-            print(f"✅ Descarga exitosa con formato: {fmt}")
-            download_success = True
-            break
+            
+            # Solo marcar éxito si realmente extrajo info
+            if info:
+                print(f"✅ Descarga exitosa con formato: {fmt}")
+                download_success = True
+                break
+            else:
+                print(f"⚠️ No se extrajo información")
+                continue
             
         except Exception as e:
             error_msg = str(e)
