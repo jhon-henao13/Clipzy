@@ -109,15 +109,17 @@ def download_video():
         "geo_bypass_country": "DE",
         "retries": 8,  # ⬆️ Más reintentos
         "fragment_retries": 8,  # ⬆️ Más reintentos en fragmentos
-        "extractor_retries": 5,  # ⬆️ Más reintentos en extractor
+        "extractor_retries": 10,  # ⬆️ Más reintentos en extractor
         "socket_timeout": 60,  # ✅ Timeout más largo
         "sleep_interval": 2,  # ⬆️ Esperar más entre solicitudes
         "sleep_interval_requests": 2,  # ✅ Espera entre requests
         "cookiefile": cookie_file_path if os.path.exists(cookie_file_path) else None,
         "postprocessors": postprocessors,
-        "quiet": False,
-        "no_warnings": False,
+        "no_warnings": True,
         "http_headers": {"User-Agent": random.choice(user_agents)},
+        "impersonate": "chrome",
+        "player_client": ["web", "android"],
+        "player_js": True,
         "noprogress": True,
         "ignoreerrors": True,  # ✅ Crítico
         "skip_unavailable_fragments": True,  # ✅ Crítico para Pornhub
@@ -125,12 +127,9 @@ def download_video():
         "no_check_certificate": True,  # ✅ Desactiva verificación SSL en caso de problemas
         "prefer_free_formats": False,  # ✅ Permite formatos no libres
         "extractor_args": {
-            "pornhub": {
-                "skip": ["geo-restriction"],
-                "skip_login": True
-            },
-            "youtube": {"skip": ["hls", "dash"]},
-            "instagram": {"check_comments": False}
+            "pornhub": {"age_gate": True, "skip": ["geo-restriction"], "skip_login": True},
+            "instagram": {"check_comments": False},
+            "youtube": {"skip": ["hls", "dash"], "player_skip": ["js"]},
         }
     }
 
@@ -151,9 +150,9 @@ def download_video():
         try:
             with YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=True)
-                download_success = True
-                print(f"✅ Descarga exitosa con formato: {fmt}")
-                break
+            print(f"✅ Descarga exitosa con formato: {fmt}")
+            download_success = True
+            break
             
         except Exception as e:
             error_msg = str(e)
