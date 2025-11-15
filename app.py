@@ -79,10 +79,7 @@ def download_video():
         return jsonify({"error": "URL no proporcionada"}), 400
 
     clean_old_files()
-
     temp_id = str(uuid.uuid4())
-    
-    # ✅ CAMBIO 1: Usar %(title)s para nombre original
     output_path = os.path.join(DOWNLOAD_FOLDER, f"{temp_id}_%(title)s.%(ext)s")
 
     # Determinar formato
@@ -106,42 +103,39 @@ def download_video():
     ydl_opts = {
         "outtmpl": output_path,
         "merge_output_format": "mp4",
-        "noplaylist": True,
-        "geo_bypass": True,
-        "geo_bypass_country": "US",  # Cambiar a US
-        "retries": 10,
-        "fragment_retries": 10,
-        "extractor_retries": 15,
-        "socket_timeout": 90,
-        "sleep_interval": 2,
-        "sleep_interval_requests": 2,
-        "cookiefile": cookie_file_path if os.path.exists(cookie_file_path) else None,
-        "postprocessors": postprocessors,
-        "no_warnings": False,
         "quiet": False,
+        "no_warnings": False,
+        "noplaylist": True,
+        "socket_timeout": 60,
+        "retries": 5,
+        "fragment_retries": 5,
+        "skip_unavailable_fragments": True,
+        "ignoreerrors": False,  # Cambiar a False para ver errores REALES
+        "postprocessors": postprocessors,
+        "cookiefile": cookie_file_path if os.path.exists(cookie_file_path) else None,
         "http_headers": {
             "User-Agent": random.choice(user_agents),
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.9",
-            "Accept-Encoding": "gzip, deflate, br",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Accept-Language": "es-ES,es;q=0.9",
+            "Accept-Encoding": "gzip, deflate",
             "Connection": "keep-alive",
-            "Sec-Fetch-Dest": "document",
-            "Sec-Fetch-Mode": "navigate",
-            "Sec-Fetch-Site": "none",
+            "Upgrade-Insecure-Requests": "1",
         },
-        "noprogress": True,
-        "ignoreerrors": True,
-        "skip_unavailable_fragments": True,
-        "no_check_certificate": True,
-        "prefer_free_formats": False,
-        # ✅ CAMBIO 3: Configuración YouTube mejorada
-        "extractor_args": {
-            "youtube": {
-                "player_client": ["android"],
-            },
-            "pornhub": {"age_gate": True,},
-        }
+        "socket_family": 4,  # IPv4 only
+        "ratelimit": 2097152,  # 2MB/s limit
     }
+
+    if "pornhub" in url.lower():
+        ydl_opts.update({
+            "retries": 10,
+            "fragment_retries": 10,
+            "socket_timeout": 120,
+            "sleep_interval": 3,
+            "sleep_interval_requests": 3,
+        })
+        print(f"🔞 Descargando de Pornhub con configuración especial...")
+
+
 
     # Intentar formatos: principal PRIMERO, luego fallbacks
     formats_to_try = [ytdl_format]
@@ -171,8 +165,9 @@ def download_video():
                 continue
             
         except Exception as e:
-            error_msg = str(e)
-            print(f"⚠️ Intento {attempt + 1} falló: {error_msg[:150]}...")
+            error_full = str(e)
+            print(f"⚠️ Intento {attempt + 1} falló: {error_full}...")
+            print(f"❌ Descarga fallida para: {url}")
             time.sleep(2)  # Esperar más tiempo
             continue
 

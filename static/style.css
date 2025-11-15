@@ -59,7 +59,7 @@ main {
 #result img {
   max-width: 100%;
   height: auto;
-  max-height: 500px;
+  max-height: 450px !important;
 }
 
 .my-6 {
@@ -114,7 +114,7 @@ a[href*="paypal.com"] {
     padding-bottom: 0.5rem;
   }
   #result img {
-    max-height: 150px;
+    max-height: 350px;
   }
   .my-6 {
     margin: 0.75rem 0;
