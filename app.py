@@ -45,7 +45,7 @@ def sanitize_filename(filename):
     filename = unicodedata.normalize("NFKD", filename).encode("ascii", "ignore").decode("ascii")
     filename = re.sub(r"[^\w\s-]", "", filename)
     filename = re.sub(r"\s+", "_", filename)
-    return filename.strip("_")
+    return filename.strip("_")[:100]  # Limitar a 100 caracteres
 
 
 def clean_old_files(max_age_seconds=3600):
@@ -81,7 +81,9 @@ def download_video():
     clean_old_files()
 
     temp_id = str(uuid.uuid4())
-    output_path = os.path.join(DOWNLOAD_FOLDER, f"{temp_id}.%(ext)s")
+    
+    # ✅ CAMBIO 1: Usar %(title)s para nombre original
+    output_path = os.path.join(DOWNLOAD_FOLDER, f"{temp_id}_%(title)s.%(ext)s")
 
     # Determinar formato
     if format_type == "audio":
@@ -100,19 +102,19 @@ def download_video():
         ytdl_format = "bestvideo+bestaudio/best"
         postprocessors = []
 
-    # Configuración base UNIVERSAL - Funciona con TODO
+    # ✅ CAMBIO 2: Configuración mejorada para YouTube
     ydl_opts = {
         "outtmpl": output_path,
         "merge_output_format": "mp4",
         "noplaylist": True,
         "geo_bypass": True,
-        "geo_bypass_country": "DE",
-        "retries": 8,  # ⬆️ Más reintentos
-        "fragment_retries": 8,  # ⬆️ Más reintentos en fragmentos
-        "extractor_retries": 10,  # ⬆️ Más reintentos en extractor
-        "socket_timeout": 60,  # ✅ Timeout más largo
-        "sleep_interval": 2,  # ⬆️ Esperar más entre solicitudes
-        "sleep_interval_requests": 2,  # ✅ Espera entre requests
+        "geo_bypass_country": "US",  # Cambiar a US
+        "retries": 10,
+        "fragment_retries": 10,
+        "extractor_retries": 15,
+        "socket_timeout": 90,
+        "sleep_interval": 2,
+        "sleep_interval_requests": 2,
         "cookiefile": cookie_file_path if os.path.exists(cookie_file_path) else None,
         "postprocessors": postprocessors,
         "no_warnings": False,
@@ -120,28 +122,33 @@ def download_video():
         "http_headers": {
             "User-Agent": random.choice(user_agents),
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.5",
-            "Accept-Encoding": "gzip, deflate",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Encoding": "gzip, deflate, br",
             "Connection": "keep-alive",
+            "Sec-Fetch-Dest": "document",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Site": "none",
         },
-        "player_client": "web",
         "noprogress": True,
         "ignoreerrors": True,
         "skip_unavailable_fragments": True,
-        "allow_unplayable_formats": True,  # ✅ Permite formatos no jugables (importante para algunos sitios)
-        "no_check_certificate": True,  # ✅ Desactiva verificación SSL en caso de problemas
-        "prefer_free_formats": False,  # ✅ Permite formatos no libres
+        "no_check_certificate": True,
+        "prefer_free_formats": False,
+        # ✅ CAMBIO 3: Configuración YouTube mejorada
         "extractor_args": {
+            "youtube": {
+                "player_client": ["android", "web"],  # Usar cliente Android como fallback
+                "skip": ["dash", "hls"],
+            },
             "pornhub": {"age_gate": True, "skip": ["geo-restriction"], "skip_login": True},
             "instagram": {"check_comments": False},
-            "youtube": {"skip": ["hls", "dash"]}
         }
     }
 
     # Intentar formatos: principal PRIMERO, luego fallbacks
     formats_to_try = [ytdl_format]
     if format_type != "best":
-        formats_to_try += ["bestvideo+bestaudio/best", "bestaudio/best", "best"]
+        formats_to_try += ["bestvideo+bestaudio/best", "best"]
 
     info = None
     new_name = None
@@ -161,13 +168,12 @@ def download_video():
             
         except Exception as e:
             error_msg = str(e)
-            print(f"⚠️ Intento {attempt + 1} falló: {error_msg[:100]}...")
-            time.sleep(1)  # Esperar antes de siguiente intento
+            print(f"⚠️ Intento {attempt + 1} falló: {error_msg[:150]}...")
+            time.sleep(2)  # Esperar más tiempo
             continue
 
-    # ✅ BÚSQUEDA DE ARCHIVOS DESCARGADOS
+    # ✅ CAMBIO 4: BÚSQUEDA DE ARCHIVOS CON NOMBRE ORIGINAL
     if download_success or info:
-        # Esperar más tiempo para Pornhub
         time.sleep(3)
         
         try:
@@ -175,20 +181,19 @@ def download_video():
             
             if files:
                 old_path = os.path.join(DOWNLOAD_FOLDER, files[0])
-                if os.path.exists(old_path) and os.path.getsize(old_path) > 1024:  # Verificar que no esté vacío
-                    ext = os.path.splitext(old_path)[1]
-                    new_name = f"video_{temp_id}{ext}"
-                    os.rename(old_path, os.path.join(DOWNLOAD_FOLDER, new_name))
+                if os.path.exists(old_path) and os.path.getsize(old_path) > 1024:
+                    # ✅ Mantener nombre original (ya viene con el título)
+                    new_name = files[0]
                     print(f"✅ Archivo descargado correctamente: {new_name}")
                 else:
                     print(f"⚠️ Archivo descargado pero está vacío o muy pequeño")
         except Exception as e:
             print(f"⚠️ Error al buscar archivos: {e}")
 
-    # ✅ BÚSQUEDA FINAL: Si no se encontró, esperar más y buscar nuevamente
+    # ✅ BÚSQUEDA FINAL
     if not new_name:
         print("⏳ Esperando más tiempo para búsqueda final...")
-        time.sleep(3)
+        time.sleep(4)
         
         try:
             files = [f for f in os.listdir(DOWNLOAD_FOLDER) if f.startswith(temp_id)]
@@ -196,7 +201,6 @@ def download_video():
             if files:
                 old_path = os.path.join(DOWNLOAD_FOLDER, files[0])
                 
-                # Esperar a que el archivo esté completamente escrito
                 for _ in range(5):
                     if os.path.exists(old_path):
                         size = os.path.getsize(old_path)
@@ -206,16 +210,14 @@ def download_video():
                     time.sleep(1)
                 
                 if os.path.exists(old_path) and os.path.getsize(old_path) > 1024:
-                    ext = os.path.splitext(old_path)[1]
-                    new_name = f"video_{temp_id}{ext}"
-                    os.rename(old_path, os.path.join(DOWNLOAD_FOLDER, new_name))
+                    new_name = files[0]
                     print(f"✅ Archivo recuperado en búsqueda final: {new_name}")
         except Exception as e:
             print(f"⚠️ Error en búsqueda final: {e}")
 
     # ✅ Respuesta final
     if not new_name:
-        err = "❌ No se pudo descargar. Intenta con otra URL o después de unos minutos."
+        err = "❌ No se pudo descargar. YouTube puede estar bloqueando. Intenta con TikTok, Instagram o Pinterest."
         print(f"❌ Descarga fallida para: {url}")
         return jsonify({"error": err}), 500
 
@@ -244,16 +246,19 @@ def download_file(filename):
     def generate():
         with open(file_path, "rb") as f:
             while True:
-                chunk = f.read(4096)
+                chunk = f.read(8192)  # Aumentar chunk size
                 if not chunk:
                     break
                 yield chunk
+
+    # ✅ CAMBIO 5: Nombre de descarga original
+    display_name = filename.split("_", 1)[1] if "_" in filename else filename
 
     return Response(
         generate(),
         mimetype="application/octet-stream",
         headers={
-            "Content-Disposition": f"attachment; filename={filename}",
+            "Content-Disposition": f"attachment; filename={display_name}",
             "X-Accel-Buffering": "no",
             "Content-Length": str(os.path.getsize(file_path))
         }
