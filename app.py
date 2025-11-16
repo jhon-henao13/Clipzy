@@ -118,15 +118,19 @@ def download_video():
             "User-Agent": random.choice(user_agents),
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
             "Accept-Language": "es-ES,es;q=0.9",
-            "Accept-Encoding": "gzip, deflate",
+            "Accept-Encoding": "gzip, deflate, br",
             "Connection": "keep-alive",
-            "Upgrade-Insecure-Requests": "1",
+            "Referer": "https://www.google.com/",
         },
         "socket_family": 4,  # IPv4 only
-        "ratelimit": 2097152,  # 2MB/s limit
+        "ratelimit": 0,
+        "cachedir": False,
         "extractor_args": {
            "pornhub": {"age_gate": True, "skip": ["geo"], "skip_login": True},
        },
+
+        "no_check_certificate": True,
+        "allow_unplayable_formats": True
 
     }
 
@@ -139,6 +143,24 @@ def download_video():
             "sleep_interval_requests": 3,
         })
         print(f"🔞 Descargando de Pornhub con configuración especial...")
+
+    if "pornhub" in url.lower():
+        print(f"🔞 Descargando de Pornhub con configuración especial...")
+        # usar un UA móvil + referer porn site para evitar bloqueos
+        mobile_ua = "Mozilla/5.0 (Linux; Android 13; SM-G998B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Mobile Safari/537.36"
+        ydl_opts["http_headers"].update({
+            "User-Agent": mobile_ua,
+            "Referer": "https://www.pornhub.com/",
+            "X-Requested-With": "XMLHttpRequest",
+        })
+        ydl_opts.update({
+            "retries": 10,
+            "fragment_retries": 10,
+            "socket_timeout": 120,
+            "sleep_interval": 2,
+            "sleep_interval_requests": 2,
+        })
+
 
 
 
