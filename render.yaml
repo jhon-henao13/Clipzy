@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: clipzy
+    runtime: docker
+    plan: free
+    env: python
+    buildCommand: ""
+    startCommand: gunicorn --bind 0.0.0.0:$PORT app:app --timeout 300 --workers 1 --threads 2
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: YT_COOKIES
+        sync: false

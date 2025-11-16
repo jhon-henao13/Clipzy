@@ -104,7 +104,8 @@ def download_video():
     ydl_opts = {
         "outtmpl": output_path,
         "merge_output_format": "mp4",
-        "quiet": False,
+        "quiet": True,
+        "noprogress": True,
         "no_warnings": False,
         "noplaylist": True,
         "socket_timeout": 60,
@@ -130,35 +131,19 @@ def download_video():
        },
 
         "no_check_certificate": True,
-        "allow_unplayable_formats": True
+        "allow_unplayable_formats": True,
+        "fixup": "never"
 
     }
 
     if "pornhub" in url.lower():
+        print(f"🔞 Descargando de Pornhub...")
+        mobile_ua = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1"
+        ydl_opts["http_headers"]["User-Agent"] = mobile_ua
+        ydl_opts["http_headers"]["Referer"] = "https://www.pornhub.com/"
         ydl_opts.update({
-            "retries": 10,
-            "fragment_retries": 10,
             "socket_timeout": 120,
-            "sleep_interval": 3,
-            "sleep_interval_requests": 3,
-        })
-        print(f"🔞 Descargando de Pornhub con configuración especial...")
-
-    if "pornhub" in url.lower():
-        print(f"🔞 Descargando de Pornhub con configuración especial...")
-        # usar un UA móvil + referer porn site para evitar bloqueos
-        mobile_ua = "Mozilla/5.0 (Linux; Android 13; SM-G998B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Mobile Safari/537.36"
-        ydl_opts["http_headers"].update({
-            "User-Agent": mobile_ua,
-            "Referer": "https://www.pornhub.com/",
-            "X-Requested-With": "XMLHttpRequest",
-        })
-        ydl_opts.update({
-            "retries": 10,
-            "fragment_retries": 10,
-            "socket_timeout": 120,
-            "sleep_interval": 2,
-            "sleep_interval_requests": 2,
+            "retries": 15,
         })
 
 
@@ -225,20 +210,18 @@ def download_video():
         try:
             files = [f for f in os.listdir(DOWNLOAD_FOLDER) if f.startswith(temp_id)]
             
+
             if files:
                 old_path = os.path.join(DOWNLOAD_FOLDER, files[0])
                 
-                for _ in range(5):
-                    if os.path.exists(old_path):
-                        size = os.path.getsize(old_path)
-                        if size > 1024:
-                            time.sleep(1)
-                            break
-                    time.sleep(1)
-                
-                if os.path.exists(old_path) and os.path.getsize(old_path) > 1024:
+                # ✅ FIX: Ignorar archivos .part (incompletos)
+                if old_path.endswith('.part'):
+                    print(f"⚠️ Archivo .part ignorado (descarga incompleta): {files[0]}")
+                elif os.path.exists(old_path) and os.path.getsize(old_path) > 1024:
                     new_name = files[0]
                     print(f"✅ Archivo recuperado en búsqueda final: {new_name}")
+                    
+
         except Exception as e:
             print(f"⚠️ Error en búsqueda final: {e}")
 
