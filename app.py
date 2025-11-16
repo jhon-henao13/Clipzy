@@ -121,7 +121,7 @@ def download_video():
             "Accept-Language": "es-ES,es;q=0.9",
             "Accept-Encoding": "gzip, deflate, br",
             "Connection": "keep-alive",
-            "Referer": "https://www.google.com/",
+            "Referer": "https://www.youtube.com/",
         },
         "socket_family": 4,  # IPv4 only
         "ratelimit": 0,

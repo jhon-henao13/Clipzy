@@ -13,6 +13,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     quickjs \
     && rm -rf /var/lib/apt/lists/*
 
+
+# Dependencias Playwright (FALTABAN)
+RUN apt-get update && apt-get install -y \
+    libnspr4 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 \
+    libatspi2.0-0 libxcomposite1 libxdamage1 libxfixes3 \
+    libxrandr2 libgbm1 libpango-1.0-0 libcairo2 \
+    && rm -rf /var/lib/apt/lists/*
+
+
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get update && apt-get install -y nodejs && rm -rf /var/lib/apt/lists/*
 
@@ -26,8 +35,6 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 RUN pip install --no-cache-dir "yt-dlp @ git+https://github.com/yt-dlp/yt-dlp.git"
 RUN pip install --no-cache-dir yt-dlp-ejs
 RUN pip install --no-cache-dir -r requirements.txt
-
-
 
 # Instalar dependencias para Playwright y Chromium
 RUN apt-get update && apt-get install -y wget gnupg ca-certificates
