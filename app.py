@@ -9,6 +9,7 @@ import uuid
 import subprocess
 import tempfile
 import threading
+import urllib.parse
 
 
 app = Flask(__name__)
@@ -123,6 +124,10 @@ def download_video():
         },
         "socket_family": 4,  # IPv4 only
         "ratelimit": 2097152,  # 2MB/s limit
+        "extractor_args": {
+           "pornhub": {"age_gate": True, "skip": ["geo"], "skip_login": True},
+       },
+
     }
 
     if "pornhub" in url.lower():
@@ -191,6 +196,7 @@ def download_video():
 
     # ✅ BÚSQUEDA FINAL
     if not new_name:
+
         print("⏳ Esperando más tiempo para búsqueda final...")
         time.sleep(4)
         
@@ -227,41 +233,33 @@ def download_video():
         title = info.get("title", "Video descargado")
         thumbnail = info.get("thumbnail", "")
 
+
+    # URL-encodear el nombre del archivo para que sea seguro en la ruta
+    safe_name = urllib.parse.quote(new_name, safe='')
     return jsonify({
         "success": True,
         "title": title,
         "thumbnail": thumbnail,
-        "download_url": f"/download/{new_name}"
+        "download_url": f"/download/{safe_name}"
     })
 
 
-@app.route('/download/<filename>')
+
+
+@app.route('/download/<path:filename>')
 def download_file(filename):
-    file_path = os.path.join(DOWNLOAD_FOLDER, filename)
+    # Flask decodifica automáticamente %20, pero por seguridad decodificamos
+    decoded = urllib.parse.unquote(filename)
+    # Evitar rutas fuera del folder
+    safe_path = os.path.normpath(decoded)
+    if safe_path.startswith(".."):
+        return jsonify({"error": "Nombre de archivo inválido."}), 400
 
-    if not os.path.exists(file_path):
+    if not os.path.exists(os.path.join(DOWNLOAD_FOLDER, safe_path)):
         return jsonify({"error": "Archivo no encontrado."}), 404
-    
-    def generate():
-        with open(file_path, "rb") as f:
-            while True:
-                chunk = f.read(8192)  # Aumentar chunk size
-                if not chunk:
-                    break
-                yield chunk
 
-    # ✅ CAMBIO 5: Nombre de descarga original
-    display_name = filename.split("_", 1)[1] if "_" in filename else filename
-
-    return Response(
-        generate(),
-        mimetype="application/octet-stream",
-        headers={
-            "Content-Disposition": f"attachment; filename={display_name}",
-            "X-Accel-Buffering": "no",
-            "Content-Length": str(os.path.getsize(file_path))
-        }
-    )
+    # send_from_directory gestiona Content-Disposition y streaming de forma segura
+    return send_from_directory(DOWNLOAD_FOLDER, safe_path, as_attachment=True, download_name=safe_path)
 
 
 # Contador simple
