@@ -31,15 +31,13 @@ cookie_file_path = "youtube_cookies.txt"
 yt_cookies_env = os.getenv("YT_COOKIES")
 
 if yt_cookies_env:
-    tmp_cookie_path = os.path.join(tempfile.gettempdir(), "yt_cookies.txt")
+    tmp_cookie_path = "/app/yt_cookies.txt"
     with open(tmp_cookie_path, "w", encoding="utf-8") as f:
         f.write(yt_cookies_env.strip())
     cookie_file_path = tmp_cookie_path
     print("✅ Cookies de YouTube cargadas desde variable de entorno.")
 else:
     print("⚠️ No se encontró la variable YT_COOKIES. Se usará el archivo local si existe.")
-
-
 
 def sanitize_filename(filename):
     """Limpia nombres de archivo inválidos o con acentos"""
@@ -131,7 +129,7 @@ def download_video():
             "tiktok": {"impersonate": "chrome", "playwright": True},
             "instagram": {"impersonate": "chrome", "playwright": True},
             "pinterest": {"impersonate": "chrome", "playwright": True},
-            "youtube": {"player_client": ["android", "ios"]},
+            "youtube": {"player_client": ["web", "android_embedded"]},
        },
 
         "no_check_certificate": True,
