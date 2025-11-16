@@ -127,12 +127,17 @@ def download_video():
         "ratelimit": 0,
         "cachedir": False,
         "extractor_args": {
-           "pornhub": {"age_gate": True, "skip": ["geo"], "skip_login": True},
+            "pornhub": {"age_gate": True, "skip": ["geo"], "skip_login": True},
+            "tiktok": {"impersonate": "chrome", "playwright": True},
+            "instagram": {"impersonate": "chrome", "playwright": True},
+            "pinterest": {"impersonate": "chrome", "playwright": True},
+            "youtube": {"player_client": ["android", "ios"]},
        },
 
         "no_check_certificate": True,
-        "allow_unplayable_formats": True,
-        "fixup": "never"
+        "allow_unplayable_formats": False,
+        "fixup": "detect_or_warn"
+
 
     }
 
@@ -146,8 +151,12 @@ def download_video():
             "retries": 15,
         })
 
+    if "instagram.com" in url:
+        ydl_opts["http_headers"]["Referer"] = "https://www.instagram.com/"
+        ydl_opts["http_headers"]["X-IG-App-ID"] = "936619743392459"
 
-
+    if "pinterest.com" in url:
+        ydl_opts["http_headers"]["Referer"] = "https://www.pinterest.com/"
 
     # Intentar formatos: principal PRIMERO, luego fallbacks
     formats_to_try = [ytdl_format]
@@ -213,7 +222,7 @@ def download_video():
 
             if files:
                 old_path = os.path.join(DOWNLOAD_FOLDER, files[0])
-                
+
                 # ✅ FIX: Ignorar archivos .part (incompletos)
                 if old_path.endswith('.part'):
                     print(f"⚠️ Archivo .part ignorado (descarga incompleta): {files[0]}")

@@ -21,7 +21,20 @@ WORKDIR /app
 # Copiar requirements y actualizar yt-dlp a la última versión
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip
+
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+RUN pip install --no-cache-dir "yt-dlp @ git+https://github.com/yt-dlp/yt-dlp.git"
+RUN pip install --no-cache-dir yt-dlp-ejs
 RUN pip install --no-cache-dir -r requirements.txt
+
+
+
+# Instalar dependencias para Playwright y Chromium
+RUN apt-get update && apt-get install -y wget gnupg ca-certificates
+
+# Instalar Playwright
+RUN pip install playwright
+RUN playwright install chromium
 
 # Copiar la app
 COPY . .
