@@ -25,10 +25,18 @@ cookie_file_path = "youtube_cookies.txt"
 yt_cookies_env = os.getenv("YT_COOKIES")
 if yt_cookies_env:
     tmp_cookie_path = "/app/yt_cookies.txt"
-    with open(tmp_cookie_path, "w", encoding="utf-8") as f:
-        f.write(yt_cookies_env.strip())
-    cookie_file_path = tmp_cookie_path
-    print("✅ Cookies de YouTube cargadas.")
+    try:
+        with open(tmp_cookie_path, "w", encoding="utf-8") as f:
+            f.write(yt_cookies_env.strip())
+        cookie_file_path = tmp_cookie_path
+        print("✅ Cookies de YouTube cargadas.")
+        # Verificar que el archivo existe y tiene contenido
+        if os.path.exists(cookie_file_path) and os.path.getsize(cookie_file_path) > 0:
+            print(f"✅ Archivo de cookies verificado: {os.path.getsize(cookie_file_path)} bytes")
+        else:
+            print("⚠️ Archivo de cookies vacío o no encontrado.")
+    except Exception as e:
+        print(f"⚠️ Error al escribir cookies: {e}")
 else:
     print("⚠️ No se encontró YT_COOKIES.")
 
@@ -83,7 +91,11 @@ def download_video():
         ytdl_format = "bestvideo+bestaudio/best"
         postprocessors = []
 
-    # Configuración MÍNIMA y UNIVERSAL
+    # Detectar plataforma
+    is_youtube = "youtube" in url.lower() or "youtu.be" in url.lower()
+    is_pornhub = "pornhub" in url.lower()
+    
+    # Configuración base
     ydl_opts = {
         "outtmpl": output_path,
         "merge_output_format": "mp4",
@@ -107,50 +119,89 @@ def download_video():
     }
 
     # Cookies de YouTube si existen
-    if os.path.exists(cookie_file_path):
+    if os.path.exists(cookie_file_path) and os.path.getsize(cookie_file_path) > 0:
         ydl_opts["cookiefile"] = cookie_file_path
+        print(f"🍪 Usando cookies desde: {cookie_file_path}")
 
     # Ajustes específicos por plataforma
-    if "youtube" in url.lower() or "youtu.be" in url.lower():
+    if is_youtube:
         ydl_opts["http_headers"]["Referer"] = "https://www.youtube.com/"
+        # Opciones específicas para YouTube con cookies
+        if os.path.exists(cookie_file_path):
+            ydl_opts["extractor_args"] = {
+                "youtube": {
+                    "player_client": ["android", "web"],
+                    "player_skip": ["webpage", "configs"]
+                }
+            }
     elif "tiktok" in url.lower():
         ydl_opts["http_headers"]["Referer"] = "https://www.tiktok.com/"
     elif "instagram" in url.lower():
         ydl_opts["http_headers"]["Referer"] = "https://www.instagram.com/"
     elif "pinterest" in url.lower():
         ydl_opts["http_headers"]["Referer"] = "https://www.pinterest.com/"
-    elif "pornhub" in url.lower():
+    elif is_pornhub:
         print("🔞 Descargando de Pornhub...")
+        # Para Pornhub, usar extractor genérico desde el inicio
+        ydl_opts["force_generic_extractor"] = True
         ydl_opts["http_headers"].update({
             "Referer": "https://www.pornhub.com/",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
         })
 
     info = None
     new_name = None
 
-    # INTENTO ÚNICO - SIN BUCLES COMPLICADOS
     print(f"📥 Descargando: {url[:60]}...")
+
     try:
         ydl_opts["format"] = ytdl_format
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
-
-        if info:
-            print("✅ Extracción exitosa")
-            time.sleep(2)
-
-            # Buscar el archivo descargado
-            files = [f for f in os.listdir(DOWNLOAD_FOLDER) if f.startswith(temp_id)]
-            if files:
-                file_path = os.path.join(DOWNLOAD_FOLDER, files[0])
-                if os.path.getsize(file_path) > 1024:
-                    new_name = files[0]
-                    print(f"✅ Archivo listo: {new_name}")
-
     except Exception as e:
-        error_msg = str(e)[:200]
-        print(f"❌ Error: {error_msg}")
+        err = str(e)
+        print(f"❌ Error inicial: {err}")
+        
+        # YouTube: intentar con diferentes clientes si falla
+        if is_youtube and ("Sign in to confirm" in err or "cookies" in err or "player response" in err):
+            print("🔁 Fallback YouTube: intentando con cliente web...")
+            ydl_fallback = dict(ydl_opts)
+            ydl_fallback["extractor_args"] = {
+                "youtube": {
+                    "player_client": ["web", "android"],
+                    "player_skip": []
+                }
+            }
+            try:
+                with YoutubeDL(ydl_fallback) as ydl2:
+                    info = ydl2.extract_info(url, download=True)
+            except Exception as e2:
+                print(f"❌ Fallback YouTube también falló: {e2}")
+                return jsonify({"error": "YouTube requiere cookies válidas. Verifica que YT_COOKIES esté en formato Netscape y actualizado en Koyeb."}), 400
+        
+        # Pornhub: ya se intentó con genérico, si falla probar sin genérico
+        elif is_pornhub and ("Unable to extract" in err or "PornHub" in err):
+            print("🔁 Fallback Pornhub: intentando sin extractor genérico...")
+            ydl_fallback = dict(ydl_opts)
+            ydl_fallback.pop("force_generic_extractor", None)
+            ydl_fallback["http_headers"]["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
+            try:
+                with YoutubeDL(ydl_fallback) as ydl2:
+                    info = ydl2.extract_info(url, download=True)
+            except Exception as e2:
+                print(f"❌ Fallback Pornhub también falló: {e2}")
+
+    # Si hubo extracción, validar archivo
+    if info:
+        print("✅ Extracción exitosa")
+        time.sleep(2)
+        files = [f for f in os.listdir(DOWNLOAD_FOLDER) if f.startswith(temp_id)]
+        if files:
+            file_path = os.path.join(DOWNLOAD_FOLDER, files[0])
+            if os.path.getsize(file_path) > 1024:
+                new_name = files[0]
+                print(f"✅ Archivo listo: {new_name}")
 
     if not new_name:
         return jsonify({"error": "No se pudo descargar. Intenta con otra URL."}), 500
