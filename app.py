@@ -30,7 +30,6 @@ if yt_cookies_env:
             f.write(yt_cookies_env.strip())
         cookie_file_path = tmp_cookie_path
         print("✅ Cookies de YouTube cargadas.")
-        # Verificar que el archivo existe y tiene contenido
         if os.path.exists(cookie_file_path) and os.path.getsize(cookie_file_path) > 0:
             print(f"✅ Archivo de cookies verificado: {os.path.getsize(cookie_file_path)} bytes")
         else:
@@ -74,27 +73,31 @@ def download_video():
     temp_id = str(uuid.uuid4())
     output_path = os.path.join(DOWNLOAD_FOLDER, f"{temp_id}_%(title)s.%(ext)s")
 
-    # Determinar formato y postprocessor
-    if format_type == "audio":
-        ytdl_format = "bestaudio/best"
-        postprocessors = [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3", "preferredquality": "0"}]
-    elif format_type == "1080p":
-        ytdl_format = "bestvideo[height<=1080]+bestaudio/best"
-        postprocessors = []
-    elif format_type == "720p":
-        ytdl_format = "bestvideo[height<=720]+bestaudio/best"
-        postprocessors = []
-    elif format_type == "480p":
-        ytdl_format = "bestvideo[height<=480]+bestaudio/best"
-        postprocessors = []
-    else:
-        ytdl_format = "bestvideo+bestaudio/best"
-        postprocessors = []
-
     # Detectar plataforma
     is_youtube = "youtube" in url.lower() or "youtu.be" in url.lower()
     is_pornhub = "pornhub" in url.lower()
     
+    # Determinar formato con fallback automático (más flexible)
+    if format_type == "audio":
+        ytdl_format = "bestaudio/best"
+        postprocessors = [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3", "preferredquality": "0"}]
+    elif format_type == "1080p":
+        # Fallback automático: si no hay 1080p, intenta 720p, luego best
+        ytdl_format = "bestvideo[height<=1080]+bestaudio/best[height<=1080]/bestvideo[height<=720]+bestaudio/best[height<=720]/best"
+        postprocessors = []
+    elif format_type == "720p":
+        # Fallback automático: si no hay 720p, intenta 480p, luego best
+        ytdl_format = "bestvideo[height<=720]+bestaudio/best[height<=720]/bestvideo[height<=480]+bestaudio/best[height<=480]/best"
+        postprocessors = []
+    elif format_type == "480p":
+        # Fallback automático: si no hay 480p, usa best
+        ytdl_format = "bestvideo[height<=480]+bestaudio/best[height<=480]/best"
+        postprocessors = []
+    else:
+        # Formato más flexible con múltiples fallbacks
+        ytdl_format = "bestvideo*+bestaudio/best*/best"
+        postprocessors = []
+
     # Configuración base
     ydl_opts = {
         "outtmpl": output_path,
@@ -126,12 +129,12 @@ def download_video():
     # Ajustes específicos por plataforma
     if is_youtube:
         ydl_opts["http_headers"]["Referer"] = "https://www.youtube.com/"
-        # Opciones específicas para YouTube con cookies
+        # Opciones específicas para YouTube
         if os.path.exists(cookie_file_path):
             ydl_opts["extractor_args"] = {
                 "youtube": {
                     "player_client": ["android", "web"],
-                    "player_skip": ["webpage", "configs"]
+                    "player_skip": ["webpage"]
                 }
             }
     elif "tiktok" in url.lower():
@@ -142,8 +145,7 @@ def download_video():
         ydl_opts["http_headers"]["Referer"] = "https://www.pinterest.com/"
     elif is_pornhub:
         print("🔞 Descargando de Pornhub...")
-        # Para Pornhub, usar extractor genérico desde el inicio
-        ydl_opts["force_generic_extractor"] = True
+        # Para Pornhub, NO usar force_generic_extractor primero, intentar extractor nativo
         ydl_opts["http_headers"].update({
             "Referer": "https://www.pornhub.com/",
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
@@ -155,6 +157,7 @@ def download_video():
 
     print(f"📥 Descargando: {url[:60]}...")
 
+    # Intentar descarga
     try:
         ydl_opts["format"] = ytdl_format
         with YoutubeDL(ydl_opts) as ydl:
@@ -163,34 +166,65 @@ def download_video():
         err = str(e)
         print(f"❌ Error inicial: {err}")
         
-        # YouTube: intentar con diferentes clientes si falla
-        if is_youtube and ("Sign in to confirm" in err or "cookies" in err or "player response" in err):
-            print("🔁 Fallback YouTube: intentando con cliente web...")
-            ydl_fallback = dict(ydl_opts)
-            ydl_fallback["extractor_args"] = {
-                "youtube": {
-                    "player_client": ["web", "android"],
-                    "player_skip": []
+        # YouTube: manejar errores de formato y autenticación
+        if is_youtube:
+            if "Requested format is not available" in err or "format" in err.lower():
+                print("🔁 Fallback YouTube: intentando con formato más simple...")
+                ydl_fallback = dict(ydl_opts)
+                ydl_fallback["format"] = "best"  # Formato más simple
+                try:
+                    with YoutubeDL(ydl_fallback) as ydl2:
+                        info = ydl2.extract_info(url, download=True)
+                except Exception as e2:
+                    print(f"❌ Fallback formato simple falló: {e2}")
+                    # Último intento: solo best sin merge
+                    try:
+                        ydl_fallback2 = dict(ydl_opts)
+                        ydl_fallback2["format"] = "best"
+                        ydl_fallback2.pop("merge_output_format", None)
+                        with YoutubeDL(ydl_fallback2) as ydl3:
+                            info = ydl3.extract_info(url, download=True)
+                    except Exception as e3:
+                        print(f"❌ Último fallback falló: {e3}")
+            
+            elif "Sign in to confirm" in err or "cookies" in err or "player response" in err:
+                print("🔁 Fallback YouTube: intentando con cliente web...")
+                ydl_fallback = dict(ydl_opts)
+                ydl_fallback["extractor_args"] = {
+                    "youtube": {
+                        "player_client": ["web"],
+                        "player_skip": []
+                    }
                 }
-            }
-            try:
-                with YoutubeDL(ydl_fallback) as ydl2:
-                    info = ydl2.extract_info(url, download=True)
-            except Exception as e2:
-                print(f"❌ Fallback YouTube también falló: {e2}")
-                return jsonify({"error": "YouTube requiere cookies válidas. Verifica que YT_COOKIES esté en formato Netscape y actualizado en Koyeb."}), 400
+                try:
+                    with YoutubeDL(ydl_fallback) as ydl2:
+                        info = ydl2.extract_info(url, download=True)
+                except Exception as e2:
+                    print(f"❌ Fallback YouTube también falló: {e2}")
+                    return jsonify({"error": "YouTube requiere cookies válidas. Verifica que YT_COOKIES esté en formato Netscape y actualizado en Koyeb."}), 400
         
-        # Pornhub: ya se intentó con genérico, si falla probar sin genérico
-        elif is_pornhub and ("Unable to extract" in err or "PornHub" in err):
-            print("🔁 Fallback Pornhub: intentando sin extractor genérico...")
-            ydl_fallback = dict(ydl_opts)
-            ydl_fallback.pop("force_generic_extractor", None)
-            ydl_fallback["http_headers"]["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
-            try:
-                with YoutubeDL(ydl_fallback) as ydl2:
-                    info = ydl2.extract_info(url, download=True)
-            except Exception as e2:
-                print(f"❌ Fallback Pornhub también falló: {e2}")
+        # Pornhub: intentar diferentes estrategias
+        elif is_pornhub:
+            # Estrategia 1: Sin extractor genérico (ya intentado), probar con diferentes headers
+            if "Unable to extract" in err or "PornHub" in err:
+                print("🔁 Fallback Pornhub: intentando con extractor genérico...")
+                ydl_fallback = dict(ydl_opts)
+                ydl_fallback["force_generic_extractor"] = True
+                ydl_fallback["http_headers"]["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
+                try:
+                    with YoutubeDL(ydl_fallback) as ydl2:
+                        info = ydl2.extract_info(url, download=True)
+                except Exception as e2:
+                    print(f"❌ Fallback genérico falló: {e2}")
+                    # Estrategia 2: Probar sin restricciones de formato
+                    try:
+                        ydl_fallback2 = dict(ydl_fallback)
+                        ydl_fallback2["format"] = "best"
+                        ydl_fallback2["ignoreerrors"] = True
+                        with YoutubeDL(ydl_fallback2) as ydl3:
+                            info = ydl3.extract_info(url, download=True)
+                    except Exception as e3:
+                        print(f"❌ Fallback Pornhub también falló: {e3}")
 
     # Si hubo extracción, validar archivo
     if info:
