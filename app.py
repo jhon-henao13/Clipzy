@@ -110,6 +110,8 @@ def download_video():
 
         url_low = url.lower()
 
+        TOR_PROXY = "socks5://127.0.0.1:9050"
+
         opts = {
             "outtmpl": output_template,
             "quiet": False,
@@ -129,7 +131,15 @@ def download_video():
             "merge_output_format": "mp4" if format_type != "audio" else None,
             "nocheckcertificate": True,
             "wait_for_video": (5, 10),
+            "proxy": None,
         }
+
+        if any(domain in url_low for domain in ["tiktok.com", "vt.tiktok", "reddit.com", "instagram.com", "x.com", "twitter.com", "pornhub.com"]):
+            opts["proxy"] = TOR_PROXY
+            opts["impersonate"] = "chrome-110"
+        else:
+            opts["proxy"] = None # IP directa para YouTube y otros
+
 
         if format_type != "audio":
             opts["merge_output_format"] = "mp4"
@@ -168,11 +178,8 @@ def download_video():
         # Para TikTok: Forzamos el uso de impersonate (Chrome)
         if "tiktok.com" in url_low or "vt.tiktok" in url_low:
             opts.update({
+                "proxy": TOR_PROXY, # <--- Asegúrate que esté aquí también
                 "impersonate": "chrome-110",
-                "http_headers": {
-                    "Referer": "https://www.tiktok.com/",
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36",
-                },
                 "extractor_args": {
                     "tiktok": {
                         "web_client_name": "android_v2",
@@ -180,11 +187,18 @@ def download_video():
                 },
             })
 
-        # Para Reddit: Muy importante añadir impersonate también
+            headers.update({
+                "Referer": "https://www.tiktok.com/",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36",
+            })
+
+
         elif "reddit.com" in url_low:
             opts.update({
+                "proxy": TOR_PROXY,
                 "impersonate": "chrome",
-                "add_header": ["Referer:https://www.reddit.com/"]
+                "format": "bestvideo+bestaudio/best",
+                "merge_output_format": "mp4",
             })
 
 
