@@ -1,4 +1,5 @@
-from flask import Flask, request, jsonify, render_template, send_from_directory
+from flask import Flask, request, jsonify, render_template, send_from_directory, make_response
+import datetime
 from yt_dlp import YoutubeDL
 import os
 import time
@@ -363,11 +364,45 @@ def increment_counter():
 
 @app.route('/terms')
 def terms():
-    return "Términos de Servicio"
+    return render_template('terms.html')
 
 @app.route('/privacy')
 def privacy():
-    return "Política de Privacidad"
+    return render_template('privacy.html')
+
+
+@app.route('/robots.txt')
+def robots():
+    content = """
+User-agent: *
+Allow: /
+Disallow: /api/download
+Disallow: /api/increment
+
+Sitemap: https://clipzy.com/sitemap.xml
+    """
+    response = make_response(content)
+    response.headers["Content-Type"] = "text/plain"
+    return response
+
+@app.route('/sitemap.xml')
+def sitemap():
+    # Obtener la fecha actual para el sitemap
+    today = datetime.datetime.now().strftime('%Y-%m-%d')
+    
+    # Aquí puedes agregar más URLs si tienes páginas de términos, etc.
+    pages = [
+        {'loc': 'https://clipzy.com/', 'lastmod': today, 'priority': '1.0'},
+        {'loc': 'https://clipzy.com/terms', 'lastmod': today, 'priority': '0.5'},
+        {'loc': 'https://clipzy.com/privacy', 'lastmod': today, 'priority': '0.5'},
+    ]
+    
+    sitemap_xml = render_template('sitemap_template.xml', pages=pages)
+    response = make_response(sitemap_xml)
+    response.headers["Content-Type"] = "application/xml"
+    return response
+
+
 
 if __name__ == '__main__':
     initialize_counter()
