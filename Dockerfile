@@ -3,7 +3,7 @@ FROM python:3.12-slim
 ENV PYTHONUNBUFFERED=1
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ffmpeg libavcodec-extra curl git build-essential nodejs \
+    ffmpeg libavcodec-extra curl git build-essential nodejs npm \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

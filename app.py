@@ -118,6 +118,7 @@ def download_video():
             "skip_unavailable_fragments": True,
             "ignoreerrors": False,
             "postprocessors": postprocessors,
+            "impersonate": "chrome",
             "http_chunk_size": 10485760,
         }
         
@@ -142,10 +143,14 @@ def download_video():
             
             opts["extractor_args"] = {
                 "youtube": {
-                    "player_client": ["web", "mweb", "tv"],
+                    "player_client": ["android_vr", "ios", "tvweb"], # Clientes con menos restricciones de PO Token
                     "player_skip": ["configs"],
                 }
             }
+            # Esto desactiva el chequeo de firmas que te está dando error
+            opts["check_formats"] = False
+
+
         elif "tiktok.com" in url_low:
             headers["Referer"] = "https://www.tiktok.com/"
         elif "instagram.com" in url_low:
