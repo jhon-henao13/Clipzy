@@ -85,23 +85,25 @@ def download_video():
     # Detectar plataforma
     is_youtube = "youtube" in url.lower() or "youtu.be" in url.lower()
     is_pornhub = "pornhub" in url.lower()
-    
-    # Determinar formato - ULTRA SIMPLIFICADO
+
+
+    postprocessors = []
     if format_type == "audio":
         ytdl_format = "bestaudio/best"
         postprocessors = [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3", "preferredquality": "0"}]
-    elif format_type == "1080p":
-        ytdl_format = "bestvideo[height<=1080]+bestaudio/best[height<=1080]/best"
-    elif format_type == "720p":
-        ytdl_format = "bestvideo[height<=720]+bestaudio/best[height<=720]/best"
-    elif format_type == "480p":
-        ytdl_format = "bestvideo[height<=480]+bestaudio/best[height<=480]/best"
     else:
-        ytdl_format = "best"
-        postprocessors = []
-    
-    if format_type != "audio":
-        postprocessors = []
+        # Aseguramos que siempre intente descargar video+audio y los una en mp4
+        ytdl_format = "bestvideo+bestaudio/best"
+        if format_type == "1080p":
+            ytdl_format = "bestvideo[height<=1080]+bestaudio/best[height<=1080]/best"
+        elif format_type == "720p":
+            ytdl_format = "bestvideo[height<=720]+bestaudio/best[height<=720]/best"
+        elif format_type == "480p":
+            ytdl_format = "bestvideo[height<=480]+bestaudio/best[height<=480]/best"
+        
+        # Este postprocessor asegura que el archivo final sea compatible
+        postprocessors = [{"key": "FFmpegVideoConvertor", "preferedformat": "mp4"}]
+
 
     # Función para crear opciones - NUEVA INSTANCIA CADA VEZ
     def create_ydl_opts(output_template, use_cookies=True):
@@ -110,186 +112,99 @@ def download_video():
             "quiet": False,
             "no_warnings": False,
             "noplaylist": True,
-            "socket_timeout": 30,
-            "retries": 5,
-            "fragment_retries": 5,
+            "socket_timeout": 60,
+            "retries": 10,
+            "fragment_retries": 10,
+            "skip_unavailable_fragments": True,
+            "ignoreerrors": False,
             "postprocessors": postprocessors,
-            
-            # --- EL SECRETO PARA EVITAR BLOQUEOS ---
-            "impersonate": "chrome",  # Esto imita el TLS/JA3 de Chrome
-            "http_chunk_size": 10485760, # Descarga en pedazos de 10MB para evitar cortes
         }
         
         if format_type != "audio":
             opts["merge_output_format"] = "mp4"
-    
-        # Configuración YouTube (PO Token y Clientes)
+        
+        # Headers ultra-compatibles
+        headers = {
+            "User-Agent": random.choice(user_agents),
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Connection": "keep-alive",
+        }
+        
+        # Lógica de detección reforzada
+        url_low = url.lower()
         if is_youtube:
+            headers["Referer"] = "https://www.youtube.com/"
             if use_cookies and os.path.exists(cookie_file_path):
                 opts["cookiefile"] = cookie_file_path
-            
-            # Usamos clientes que suelen pedir menos validación de PO Token
             opts["extractor_args"] = {
                 "youtube": {
-                    "player_client": ["tv", "ios"], 
-                    "player_skip": ["webpage", "configs"],
+                    "player_client": ["android", "ios"],
+                    "player_skip": ["webpage", "configs"]
                 }
             }
-    
-        # Configuración Pornhub y Adultos
+        elif "tiktok.com" in url_low:
+            headers["Referer"] = "https://www.tiktok.com/"
+        elif "instagram.com" in url_low:
+            headers["Referer"] = "https://www.instagram.com/"
+        elif "pinterest" in url_low:
+            headers["Referer"] = "https://www.pinterest.com/"
         elif is_pornhub:
             opts["age_limit"] = 18
-            # PH bloquea headers custom, mejor dejamos que yt-dlp use sus internos con impersonate
+            headers.update({
+                "Referer": "https://www.pornhub.com/",
+                "Sec-Fetch-Mode": "navigate",
+                "Upgrade-Insecure-Requests": "1"
+            })
         
+        opts["http_headers"] = headers
         return opts
+
+
 
     info = None
     new_name = None
     final_title = "Descarga"
     thumbnail = ""
-
-    print(f"📥 Descargando: {url[:60]}...")
-
-    # Para YouTube y Pornhub, descargar directamente sin obtener info primero
-    # Para otras plataformas, intentar obtener info primero
     output_path = os.path.join(DOWNLOAD_FOLDER, f"{temp_id}_%(title)s.%(ext)s")
-    
-    if not is_youtube and not is_pornhub:
-        # Para otras plataformas, obtener título primero
-        try:
-            info_opts = create_ydl_opts(output_path, use_cookies=False)
-            info_opts["format"] = "best"
-            with YoutubeDL(info_opts) as ydl:
-                info = ydl.extract_info(url, download=False)
-                if info:
-                    final_title = info.get("title", "Descarga")
-                    thumbnail = info.get("thumbnail", "")
-                    print(f"📝 Título: {final_title}")
-        except Exception as e:
-            print(f"⚠️ Error al obtener info: {e}")
 
-    # Intentar descargar
+    # Intentar proceso de descarga unificado
     try:
         ydl_opts = create_ydl_opts(output_path, use_cookies=True)
         ydl_opts["format"] = ytdl_format
         
         with YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])
-            
-            # Buscar archivo descargado
+            print(f"📥 Iniciando extracción y descarga...")
+            # download=True hace todo en un paso más seguro para redes sociales
+            info = ydl.extract_info(url, download=True)
+            if info:
+                final_title = info.get("title", "Descarga")
+                thumbnail = info.get("thumbnail", "")
+                
+            # Verificación inmediata del archivo
             files = [f for f in os.listdir(DOWNLOAD_FOLDER) if f.startswith(temp_id)]
             if files:
                 file_path = os.path.join(DOWNLOAD_FOLDER, files[0])
                 if os.path.getsize(file_path) > 1024:
                     new_name = files[0]
-                    # Obtener info del archivo descargado si no la tenemos
-                    if not info:
-                        try:
-                            info = ydl.extract_info(url, download=False)
-                            if info:
-                                final_title = info.get("title", "Descarga")
-                                thumbnail = info.get("thumbnail", "")
-                        except:
-                            pass
-                    print(f"✅ Archivo listo: {new_name}")
-                    
+
     except Exception as e:
         err = str(e)
-        print(f"❌ Error inicial: {err}")
+        print(f"❌ Error durante la descarga: {err}")
         
-        # YouTube: fallbacks
-        if is_youtube:
-            # Fallback 1: Formato simple
-            if "Requested format is not available" in err or "format" in err.lower():
-                print("🔁 Fallback YouTube: formato 'best'...")
-                try:
-                    fallback_path = os.path.join(DOWNLOAD_FOLDER, f"{temp_id}_%(title)s.%(ext)s")
-                    ydl_fallback = create_ydl_opts(fallback_path, use_cookies=True)
-                    ydl_fallback["format"] = "best"
-                    with YoutubeDL(ydl_fallback) as ydl2:
-                        ydl2.download([url])
-                        files = [f for f in os.listdir(DOWNLOAD_FOLDER) if f.startswith(temp_id)]
-                        if files:
-                            file_path = os.path.join(DOWNLOAD_FOLDER, files[0])
-                            if os.path.getsize(file_path) > 1024:
-                                new_name = files[0]
-                                try:
-                                    info = ydl2.extract_info(url, download=False)
-                                    if info:
-                                        final_title = info.get("title", "Descarga")
-                                        thumbnail = info.get("thumbnail", "")
-                                except:
-                                    pass
-                except Exception as e2:
-                    print(f"❌ Fallback YouTube falló: {e2}")
-            
-            # Fallback 2: Cliente web
-            if not new_name and ("Sign in to confirm" in err or "cookies" in err or "player response" in err):
-                print("🔁 Fallback YouTube: cliente web...")
-                try:
-                    fallback_path = os.path.join(DOWNLOAD_FOLDER, f"{temp_id}_%(title)s.%(ext)s")
-                    ydl_fallback = create_ydl_opts(fallback_path, use_cookies=True)
-                    ydl_fallback["format"] = "best"
-                    ydl_fallback["extractor_args"] = {
-                        "youtube": {
-                            "player_client": ["web"],
-                            "player_skip": []
-                        }
-                    }
-                    with YoutubeDL(ydl_fallback) as ydl2:
-                        ydl2.download([url])
-                        files = [f for f in os.listdir(DOWNLOAD_FOLDER) if f.startswith(temp_id)]
-                        if files:
-                            file_path = os.path.join(DOWNLOAD_FOLDER, files[0])
-                            if os.path.getsize(file_path) > 1024:
-                                new_name = files[0]
-                                try:
-                                    info = ydl2.extract_info(url, download=False)
-                                    if info:
-                                        final_title = info.get("title", "Descarga")
-                                        thumbnail = info.get("thumbnail", "")
-                                except:
-                                    pass
-                except Exception as e2:
-                    print(f"❌ Fallback YouTube también falló: {e2}")
-                    return jsonify({"error": "YouTube requiere cookies válidas. Verifica YT_COOKIES en Koyeb."}), 400
-        
-        # Pornhub: NO usar extractor genérico (descarga videos promocionales)
-        elif is_pornhub:
-            if "Unable to extract" in err or "PornHub" in err:
-                print("🔁 Fallback Pornhub: mejorando headers...")
-                try:
-                    fallback_path = os.path.join(DOWNLOAD_FOLDER, f"{temp_id}_%(title)s.%(ext)s")
-                    ydl_fallback = create_ydl_opts(fallback_path, use_cookies=False)
-                    ydl_fallback["format"] = "best"
-                    # Headers aún más realistas
-                    ydl_fallback["http_headers"]["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
-                    ydl_fallback["http_headers"]["Accept"] = "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8"
-                    with YoutubeDL(ydl_fallback) as ydl2:
-                        ydl2.download([url])
-                        files = [f for f in os.listdir(DOWNLOAD_FOLDER) if f.startswith(temp_id)]
-                        if files:
-                            file_path = os.path.join(DOWNLOAD_FOLDER, files[0])
-                            if os.path.getsize(file_path) > 1024:
-                                new_name = files[0]
-                                # Verificar que no sea un video promocional
-                                if "pornhub" in new_name.lower() and "(" in new_name.lower():
-                                    print("⚠️ Video promocional detectado, descartando...")
-                                    try:
-                                        os.remove(file_path)
-                                        new_name = None
-                                    except:
-                                        pass
-                                else:
-                                    try:
-                                        info = ydl2.extract_info(url, download=False)
-                                        if info:
-                                            final_title = info.get("title", "Descarga")
-                                            thumbnail = info.get("thumbnail", "")
-                                    except:
-                                        pass
-                except Exception as e2:
-                    print(f"❌ Fallback Pornhub falló: {e2}")
+        # Fallback exclusivo para YouTube si el formato falla
+        if is_youtube and not new_name:
+            print("🔁 Reintentando YouTube con formato básico...")
+            try:
+                ydl_opts["format"] = "best"
+                with YoutubeDL(ydl_opts) as ydl_f:
+                    info = ydl_f.extract_info(url, download=True)
+                    files = [f for f in os.listdir(DOWNLOAD_FOLDER) if f.startswith(temp_id)]
+                    if files: new_name = files[0]
+            except Exception as e2:
+                print(f"❌ Fallback fallido: {e2}")
+
+
 
     # Validar archivo
     if not new_name:
