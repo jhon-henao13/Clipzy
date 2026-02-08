@@ -154,12 +154,31 @@ def download_video():
             opts["check_formats"] = False
 
 
-        elif "tiktok.com" in url_low:
+        elif "tiktok.com" in url_low or "vt.tiktok" in url_low or "vm.tiktok" in url_low:
+            headers["User-Agent"] = "Mozilla/5.0 (iPhone; CPU iPhone OS 14_8 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Mobile/15E148 Safari/604.1"
             headers["Referer"] = "https://www.tiktok.com/"
+            opts["extractor_args"] = {'tiktok': {'web_client_name': 'android_v2'}} # Salta verificaciones web
+
         elif "instagram.com" in url_low:
             headers["Referer"] = "https://www.instagram.com/"
+            # Instagram odia los servidores; esto ayuda un poco:
+            opts["add_header"] = ["Accept-Encoding: gzip, deflate, br", "Connection: keep-alive"]
+
+        elif "twitter.com" in url_low or "x.com" in url_low:
+            headers["Referer"] = "https://x.com/"
+            opts["extractor_args"] = {"twitter": {"api": "syndication"}}
+            opts["check_formats"] = False
+
+
         elif "pinterest" in url_low:
             headers["Referer"] = "https://www.pinterest.com/"
+
+        elif "reddit.com" in url_low:
+            headers["Referer"] = "https://www.reddit.com/"
+            
+        elif "facebook.com" in url_low or "fb.watch" in url_low:
+            headers["Referer"] = "https://www.facebook.com/"
+
 
         elif is_pornhub:
 
@@ -206,15 +225,19 @@ def download_video():
         err = str(e)
         print(f"❌ Error durante la descarga: {err}")
         
-        # Fallback exclusivo para YouTube si el formato falla
-        if is_youtube and not new_name:
-            print("🔁 Reintentando YouTube con formato básico...")
+        
+        # Fallback universal para cualquier plataforma
+        if not new_name:
+            print("🔁 Reintentando con formato básico...")
             try:
                 ydl_opts["format"] = "best"
                 with YoutubeDL(ydl_opts) as ydl_f:
                     info = ydl_f.extract_info(url, download=True)
                     files = [f for f in os.listdir(DOWNLOAD_FOLDER) if f.startswith(temp_id)]
-                    if files: new_name = files[0]
+                    if files: 
+                        file_path = os.path.join(DOWNLOAD_FOLDER, files[0])
+                        if os.path.getsize(file_path) > 1024:
+                            new_name = files[0]
             except Exception as e2:
                 print(f"❌ Fallback fallido: {e2}")
 
