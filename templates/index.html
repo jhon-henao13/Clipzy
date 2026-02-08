@@ -3,157 +3,169 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Clipzy - Descarga videos fácilmente</title>
+  
+  <title>Clipzy | Descargar Videos de TikTok, Instagram y YouTube Gratis</title>
+  <meta name="description" content="La herramienta #1 para descargar videos de TikTok sin marca de agua, Reels de Instagram, YouTube y Pinterest en MP4/MP3. Alta velocidad y calidad 4K garantizada.">
+  <meta name="keywords" content="descargar videos tiktok sin marca de agua, descargar reels instagram, youtube mp3 converter, clipzy downloader, descargar videos pinterest">
+  <link rel="canonical" href="https://tu-dominio-koyeb.koyeb.app/" />
+  
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Clipzy - Descargador de Videos Multiplataforma" />
+  <meta property="og:description" content="Baja videos en HD y MP3 de tus redes favoritas. Rápido, gratis y sin límites." />
+  <meta property="og:image" content="/static/img/icon.png" />
+  <meta property="og:url" content="https://tu-dominio-koyeb.koyeb.app/" />
 
-  <!-- ✅ PWA Meta Tags -->
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="Clipzy">
-  <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/icon.png') }}">
-
-  <meta name="monetag" content="97e48a424aa33fd1a60101a03abb678c">
-
-  <meta name="theme-color" content="#22c55e">
+  <meta name="theme-color" content="#10b981">
+  <link rel="shortcut icon" href="/static/img/icon.png" type="image/x-icon">
   <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
 
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9801535106508814"
-     crossorigin="anonymous"></script>
-
-  <link rel="shortcut icon" href="/static/img/icon.png" type="image/x-icon">
-
-  <!-- ✅ SEO META -->
-  <meta name="description" content="Clipzy es la mejor herramienta gratuita para descargar videos y música de YouTube, TikTok, Instagram y Pinterest en alta calidad (MP4, MP3, HD, Full HD, 4K).">
-  <meta name="keywords" content="descargar videos youtube mp4, youtube downloader, tiktok downloader, descargar reels, instagram reels, pinterest, mp4 gratis, youtube mp4, tiktok mp4, instagram mp4, pinterest mp4, youtube mp3, descargar musica youtube mp3, descargar tiktok sin marca de agua, descargar reels instagram, youtube downloader hd, descargar shorts youtube">
-  <meta name="author" content="Clipzy">
-  <meta property="og:title" content="Clipzy - Descarga videos y música en HD" />
-  <meta property="og:description" content="Descarga tus videos favoritos de YouTube, TikTok, Instagram y Pinterest sin marca de agua y en la mejor calidad. Gratis, rápido y seguro.">
-  <meta property="og:image" content="https://cdn-icons-png.flaticon.com/512/1384/1384060.png" />
-  <meta property="og:url" content="https://clipzy.com" />
-  <meta name="twitter:card" content="summary_large_image" />
-
-  <!-- ✅ TAILWIND -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" />
 
-  <!-- ✅ Font Awesome Free -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" integrity="sha512-Kc323vGBEqzTmouAECnVceyQqyqdsSiqLQISBL29aUW4U/M7pSPA/gEUZQqv1cwx4OnYxTxve5UMg5GT6L4JJg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    
+    /* Fondo con movimiento suave */
+    .bg-animate {
+      background: radial-gradient(circle at top right, #064e3b, #020617);
+    }
 
-  <!-- ✅ CUSTOM CSS -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    /* Efecto Glassmorphism */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 24px;
+    }
 
-  <!-- ✅ PARTICLES.JS -->
+    .input-glass {
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: white;
+    }
+
+    .input-glass:focus {
+      border-color: #10b981;
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+    }
+
+    /* Animaciones */
+    @keyframes float {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+      100% { transform: translateY(0px); }
+    }
+    .float-anim { animation: float 4s ease-in-out infinite; }
+
+    .fade-up {
+      animation: fadeUp 0.8s ease-out forwards;
+      opacity: 0;
+    }
+    @keyframes fadeUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  </style>
+
   <script src="https://cdn.jsdelivr.net/npm/tsparticles@2.12.0/tsparticles.bundle.min.js"></script>
 </head>
 
-<script src="https://fpyf8.com/88/tag.min.js" data-zone="187626" async data-cfasync="false"></script>
+<body class="bg-animate text-white min-h-screen flex flex-col overflow-x-hidden">
+  
+  <div id="tsparticles" class="absolute inset-0 pointer-events-none"></div>
 
+  <nav class="w-full p-6 flex justify-between items-center z-10">
+    <div class="flex items-center gap-2">
+      <img src="/static/img/icon.png" alt="Clipzy Logo" class="w-10 h-10 float-anim">
+      <span class="text-2xl font-extrabold tracking-tighter text-emerald-400">CLIPZY</span>
+    </div>
+    <div class="hidden md:flex gap-6 text-sm font-semibold text-emerald-100/70">
+      <a href="#" class="hover:text-emerald-400 transition">Inicio</a>
+      <a href="/terms" class="hover:text-emerald-400 transition">Soporte</a>
+    </div>
+  </nav>
 
-<body class="bg-gradient-to-br from-green-900 via-green-950 to-black text-white min-h-screen relative flex flex-col">
-  <!-- ✅ Partículas -->
-  <div id="tsparticles" class="absolute inset-0 -z-10"></div>
-
-  <!-- ✅ Contenido -->
-  <div class="content-wrapper flex flex-col flex-grow">
-    <main class="flex flex-col items-center justify-start p-4 sm:p-6 text-center animate-fade-in">
-      <div class="logo-container flex flex-row justify-center items-center gap-2 mb-4">
-        <img src="/static/img/icon.png" alt="Logo de Clipzy" class="max-w-[80px] sm:max-w-[100px]">
-        <h1 class="text-4xl sm:text-5xl font-extrabold text-white drop-shadow mb-2">Clipzy</h1>
-      </div>
-
-      <p class="text-green-200 mb-6 max-w-md text-sm sm:text-base">
-        Descarga videos de <strong>TikTok</strong>, <strong>YouTube</strong>, <strong>Instagram</strong>, <strong>Pinterest</strong>, <strong>PH 🟠</strong> en segundos, en la máxima calidad y sin marca de agua. 100% Gratis.
+  <main class="flex-grow flex flex-col items-center justify-center px-4 relative z-10">
+    
+    <section class="max-w-3xl w-full text-center fade-up">
+      <h1 class="text-5xl md:text-7xl font-extrabold mb-6 leading-tight">
+        Descargas <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">Ilimitadas</span>
+      </h1>
+      <p class="text-emerald-100/60 text-lg mb-10 max-w-xl mx-auto">
+        Baja videos y audio de tus redes sociales favoritas en segundos. Sin registros, sin marcas de agua.
       </p>
 
-      <input id="urlInput" type="text" placeholder="Pega el enlace del video..." 
-        class="w-full max-w-md p-3 rounded text-black shadow mb-4 focus:outline-none focus:ring-2 focus:ring-green-400 transition text-sm sm:text-base" />
+      <div class="glass-card p-6 md:p-10 shadow-2xl relative overflow-hidden">
+        <div class="flex flex-col gap-4">
+          <div class="relative">
+            <i class="fa-solid fa-link absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500"></i>
+            <input id="urlInput" type="text" placeholder="Pega el enlace aquí (TikTok, IG, X...)" 
+              class="w-full pl-12 pr-4 py-4 rounded-xl input-glass outline-none transition-all text-lg">
+          </div>
 
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <select id="formatSelect" class="w-full p-4 rounded-xl input-glass outline-none cursor-pointer">
+              <option value="best">🎥 Mejor calidad</option>
+              <option value="1080p">Full HD 1080p</option>
+              <option value="720p">HD 720p</option>
+              <option value="audio">🎵 Solo MP3</option>
+            </select>
 
-      <select id="formatSelect" class="mb-4 w-full max-w-md p-2 rounded text-black shadow text-sm sm:text-base">
-        <option value="best">🎥 Mejor calidad disponible</option>
-        <option value="1080p">HD 1080p</option>
-        <option value="720p">HD 720p</option>
-        <option value="480p">SD 480p</option>
-        <option value="audio">🎵 Solo audio HQ (MP3)</option>
-      </select>
-
-
-
-
-      <button onclick="downloadVideo()" 
-        class="bg-green-600 px-4 sm:px-6 py-2 rounded hover:bg-green-500 font-semibold transition duration-200 shadow-lg hover:scale-105 text-sm sm:text-base">
-        📥 Descargar
-      </button>
-
-      <div class="text-yellow-300 text-xs sm:text-sm mt-4 max-w-md bg-yellow-900/50 p-3 rounded">
-        ⚠️ Nota: Algunos videos de YouTube pueden no descargarse debido a su sistema de protección anti-bots. Prueba con videos públicos o enlaces de TikTok, Instagram o Pinterest.
+            <button onclick="downloadVideo()" 
+              class="bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold py-4 px-8 rounded-xl transition-all transform hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.3)]">
+              <i class="fa-solid fa-cloud-arrow-down"></i> OBTENER VIDEO
+            </button>
+          </div>
+        </div>
       </div>
 
-      <div id="preview" class="mt-4"></div>
-
-      <div id="result" class="mt-4 text-white text-center max-w-md mx-auto"></div>
-    </main>
-
-    <div class="my-6 w-full max-w-md mx-auto px-4">
-      <!-- Código de Monetag aquí (reemplaza con el código proporcionado por Monetag) -->
-      <div class="bg-green-800 p-3 rounded text-xs sm:text-sm text-green-100 text-center">
-        📢 Anuncio: Descarga sin límites y sin publicidad al registrarte. ¡Próximamente!
+      <div class="mt-8 flex flex-wrap justify-center gap-4 text-xs font-bold text-emerald-500/50 uppercase tracking-widest">
+        <span><i class="fa-brands fa-tiktok mr-1"></i> TikTok</span>
+        <span><i class="fa-brands fa-instagram mr-1"></i> Instagram</span>
+        <span><i class="fa-brands fa-x-twitter mr-1"></i> X.com</span>
+        <span><i class="fa-brands fa-reddit mr-1"></i> Reddit</span>
       </div>
-      <div class="mt-4 text-center">
-        <a href="https://www.paypal.com/donate/?hosted_button_id=QX27VXRQMVENG" target="_blank" class="bg-blue-600 px-4 sm:px-6 py-2 rounded hover:bg-blue-500 font-semibold transition duration-200 text-sm sm:text-base">
-          <i class="fa-brands fa-paypal mr-1"></i> Apoya Clipzy
-        </a>
-      </div>
+    </section>
+
+    <div id="result" class="mt-12 w-full max-w-md fade-up"></div>
+  </main>
+
+  <div class="w-full max-w-2xl mx-auto p-4 mb-10">
+    <div class="glass-card p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+      <p class="text-sm text-emerald-100/50">¿Te gusta Clipzy? Ayúdanos a mantener los servidores.</p>
+      <a href="https://www.paypal.com/donate/?hosted_button_id=QX27VXRQMVENG" target="_blank" class="bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 px-6 py-2 rounded-full border border-blue-600/50 transition-all text-sm font-bold">
+        <i class="fa-brands fa-paypal mr-2"></i>Donar con PayPal
+      </a>
     </div>
   </div>
 
-  <!-- Botón sutil para instalar PWA -->
-  <button id="installButton" class="fixed bottom-16 right-4 bg-green-600 px-4 py-2 rounded hover:bg-green-500 font-semibold transition duration-200 shadow-lg hover:scale-105 hidden text-sm sm:text-base">
-    Instalar Clipzy
-  </button>
-
-  <footer class="w-full text-xs sm:text-sm text-green-300 text-center py-4 bg-black/70 shrink-0">
-    © 2025 Clipzy — Descargar videos gratis online. By 
-    <a href="https://github.com/jhon-henao13" target="_blank" class="text-green-300 hover:text-green-200 transition">
-      <i class="fa-brands fa-github mr-1"></i>Estiguar
-    </a> | 
-    <a href="/terms" class="text-green-300 hover:text-green-200 transition">Términos</a> | 
-    <a href="/privacy" class="text-green-300 hover:text-green-200 transition">Privacidad</a>
+  <footer class="p-8 border-t border-white/5 bg-black/20 text-center">
+    <p class="text-sm text-emerald-100/30">
+      &copy; 2026 Clipzy. Todos los derechos reservados. Desarrollado con ❤️ para la web libre.
+    </p>
+    <div class="mt-4 flex justify-center gap-6 text-xs text-emerald-500/40">
+      <a href="/terms" class="hover:text-emerald-400">Términos</a>
+      <a href="/privacy" class="hover:text-emerald-400">Privacidad</a>
+      <a href="https://github.com/jhon-henao13" target="_blank" class="hover:text-emerald-400">GitHub</a>
+    </div>
   </footer>
 
-  <!-- ✅ JS -->
+  <div id="loader" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+    <div class="flex flex-col items-center">
+      <div class="w-16 h-16 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
+      <p class="mt-4 text-emerald-400 font-bold animate-pulse">PROCESANDO TU VIDEO...</p>
+    </div>
+  </div>
+
   <script>
-    // Registrar Service Worker para PWA
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/static/service-worker.js')
-          .then(reg => console.log('Service Worker registrado'))
-          .catch(err => console.log('Error al registrar Service Worker: ' + err));
-      });
-    }
-
-    // Lógica para el botón de instalación
-    let deferredPrompt;
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      document.getElementById('installButton').classList.remove('hidden');
-    });
-
-    document.getElementById('installButton').addEventListener('click', async () => {
-      document.getElementById('installButton').classList.add('hidden');
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        console.log('PWA instalada');
-      }
-      deferredPrompt = null;
-    });
-
     async function downloadVideo() {
       const url = document.getElementById('urlInput').value;
+      const format = document.getElementById('formatSelect').value;
       const resultDiv = document.getElementById('result');
       const loader = document.getElementById('loader');
 
-      const format = document.getElementById('formatSelect').value;
+      if(!url) return alert("Por favor, pega una URL válida.");
 
       resultDiv.innerHTML = "";
       loader.classList.remove("hidden");
@@ -164,60 +176,39 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url, format })
         });
-      
+        
         const data = await res.json();
         loader.classList.add("hidden");
 
-        await fetch('/api/increment', { method: 'POST' });
-
         if (data.success) {
-          const thumbnail = data.thumbnail || '';
           resultDiv.innerHTML = `
-            <div class="preview-container">
-              <img src="${thumbnail}" alt="Vista previa" class="max-w-full max-h-[750px] rounded mx-auto mb-2 shadow-lg border border-green-500 object-contain">
-              <p class="text-green-300 mt-2 text-sm sm:text-base">🎉 Video listo: <strong>${data.title}</strong></p>
-              <a href="${data.download_url}" class="text-green-400 underline mt-1 inline-block hover:text-green-200 transition text-sm sm:text-base">⬇ Descargar ahora</a>
+            <div class="glass-card p-4 animate-fade-in">
+              <img src="${data.thumbnail}" class="w-full rounded-xl mb-4 shadow-lg">
+              <h3 class="font-bold text-lg mb-2 truncate">${data.title}</h3>
+              <a href="${data.download_url}" class="block w-full bg-emerald-500 text-emerald-950 text-center font-bold py-3 rounded-xl hover:bg-emerald-400 transition-all">
+                📥 DESCARGAR ARCHIVO
+              </a>
             </div>`;
+          await fetch('/api/increment', { method: 'POST' });
         } else {
-          resultDiv.innerHTML = `<p class="text-red-400 text-sm sm:text-base">❌ Error: ${data.error}</p>`;
+          resultDiv.innerHTML = `<div class="bg-red-500/20 border border-red-500 text-red-400 p-4 rounded-xl text-center">${data.error}</div>`;
         }
       } catch (err) {
         loader.classList.add("hidden");
-        resultDiv.innerHTML = `<p class="text-red-400 text-sm sm:text-base">❌ Error al conectar con el servidor.</p>`;
+        resultDiv.innerHTML = `<div class="bg-red-500/20 border border-red-500 text-red-400 p-4 rounded-xl text-center">Error de conexión con el servidor.</div>`;
       }
     }
 
-    // Partículas
+    // Partículas Emerald
     tsParticles.load("tsparticles", {
-      fullScreen: { enable: false },
-      background: { color: "transparent" },
       particles: {
-        number: { value: 30, density: { enable: true, value_area: 800 } },
-        color: { value: "#22c55e" },
-        shape: { type: "circle" },
-        opacity: { value: 0.3 },
+        number: { value: 40 },
+        color: { value: "#10b981" },
+        opacity: { value: 0.2 },
         size: { value: { min: 1, max: 3 } },
-        move: {
-          enable: true,
-          speed: 0.5,
-          direction: "none",
-          outModes: { default: "bounce" }
-        }
-      },
-      interactivity: {
-        events: {
-          onHover: { enable: true, mode: "repulse" }
-        },
-        modes: {
-          repulse: { distance: 100 }
-        }
+        move: { enable: true, speed: 0.8 }
       }
     });
   </script>
-
-  <!-- Loader oculto -->
-  <div id="loader" class="hidden fixed inset-0 flex items-center justify-center bg-black bg-opacity-80 z-50">
-    <div class="animate-spin rounded-full h-12 w-12 sm:h-16 sm:w-16 border-t-4 border-green-400"></div>
-  </div>
 </body>
 </html>
