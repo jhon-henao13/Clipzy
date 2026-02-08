@@ -168,11 +168,14 @@ def download_video():
         # Para TikTok: Forzamos el uso de impersonate (Chrome)
         if "tiktok.com" in url_low or "vt.tiktok" in url_low:
             opts.update({
-                "impersonate": "chrome",
+                "impersonate": "chrome-110",
+                "http_headers": {
+                    "Referer": "https://www.tiktok.com/",
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36",
+                },
                 "extractor_args": {
                     "tiktok": {
                         "web_client_name": "android_v2",
-                        "app_version": "33.5.4"
                     }
                 },
             })
