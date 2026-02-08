@@ -108,6 +108,8 @@ def download_video():
     # Función para crear opciones - NUEVA INSTANCIA CADA VEZ
     def create_ydl_opts(output_template, use_cookies=True):
 
+        url_low = url.lower()
+
         opts = {
             "outtmpl": output_template,
             "quiet": False,
@@ -124,6 +126,9 @@ def download_video():
             "youtube_include_dash_manifest": False, # Evita formatos pesados que piden login
             "extrinsic_batch": True, 
             "client_id": "ANDROID",
+            "merge_output_format": "mp4" if format_type != "audio" else None,
+            "nocheckcertificate": True,
+            "wait_for_video": (5, 10),
         }
 
         if format_type != "audio":
@@ -131,13 +136,14 @@ def download_video():
 
         # 2. Definir Headers Reales
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,video/mp4,*/*;q=0.8",
             "Accept-Language": "en-US,en;q=0.9",
             "Connection": "keep-alive",
         }
 
-        url_low = url.lower()
+        if not ("tiktok.com" in url_low or "vt.tiktok" in url_low or "reddit.com" in url_low):
+            headers["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+
 
         if is_youtube:
             headers["Referer"] = "https://www.youtube.com/"
@@ -146,7 +152,7 @@ def download_video():
             
             opts["extractor_args"] = {
                 "youtube": {
-                    "player_client": ["web_creator", "mweb", "tv"], # Quitamos ios, añadimos mweb
+                    "player_client": ["android", "web", "mweb"],
                     "player_skip": ["configs", "web"],
                 }
             }
@@ -160,14 +166,23 @@ def download_video():
             opts["check_formats"] = False
 
         # Para TikTok: Forzamos el uso de impersonate (Chrome)
-        elif "tiktok.com" in url_low or "vt.tiktok" in url_low:
-            opts["impersonate"] = "chrome" # Esto requiere yt-dlp[impersonate]
-            opts["extractor_args"] = {'tiktok': {'web_client_name': 'android_v2'}}
+        if "tiktok.com" in url_low or "vt.tiktok" in url_low:
+            opts.update({
+                "impersonate": "chrome",
+                "extractor_args": {
+                    "tiktok": {
+                        "web_client_name": "android_v2",
+                        "app_version": "33.5.4"
+                    }
+                },
+            })
 
         # Para Reddit: Muy importante añadir impersonate también
         elif "reddit.com" in url_low:
-            opts["impersonate"] = "chrome"
-            headers["Referer"] = "https://www.reddit.com/"
+            opts.update({
+                "impersonate": "chrome",
+                "add_header": ["Referer:https://www.reddit.com/"]
+            })
 
 
         elif "instagram.com" in url_low:
