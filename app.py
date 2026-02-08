@@ -121,6 +121,9 @@ def download_video():
             "postprocessors": postprocessors,
             "http_chunk_size": 10485760,
             "geo_bypass": True,
+            "youtube_include_dash_manifest": False, # Evita formatos pesados que piden login
+            "extrinsic_batch": True, 
+            "client_id": "ANDROID",
         }
 
         if format_type != "audio":
@@ -141,13 +144,13 @@ def download_video():
             if use_cookies and os.path.exists(cookie_file_path):
                 opts["cookiefile"] = cookie_file_path
             
-            # Forzamos clientes que NO piden PO Token
             opts["extractor_args"] = {
                 "youtube": {
-                    "player_client": ["tv", "ios"],
-                    "player_skip": ["web_creator", "android"],
+                    "player_client": ["web_creator", "mweb", "tv"], # Quitamos ios, añadimos mweb
+                    "player_skip": ["configs", "web"],
                 }
             }
+
             opts["check_formats"] = False
 
 
@@ -159,6 +162,10 @@ def download_video():
             headers["Referer"] = "https://www.pinterest.com/"
 
         elif is_pornhub:
+
+            if os.path.exists("pornhub_cookies.txt"):
+                opts["cookiefile"] = "pornhub_cookies.txt"
+
             headers.update({
                 "Referer": "https://www.pornhub.com/",
                 "Origin": "https://www.pornhub.com"
@@ -167,7 +174,6 @@ def download_video():
 
         opts["http_headers"] = headers
         return opts
-
 
 
     info = None
@@ -307,3 +313,4 @@ def privacy():
 if __name__ == '__main__':
     initialize_counter()
     app.run(debug=False)
+
