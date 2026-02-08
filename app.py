@@ -107,6 +107,7 @@ def download_video():
 
     # Función para crear opciones - NUEVA INSTANCIA CADA VEZ
     def create_ydl_opts(output_template, use_cookies=True):
+
         opts = {
             "outtmpl": output_template,
             "quiet": False,
@@ -118,20 +119,21 @@ def download_video():
             "skip_unavailable_fragments": True,
             "ignoreerrors": False,
             "postprocessors": postprocessors,
-            # "impersonate": "chrome",  <-- ELIMINA O COMENTA ESTA LÍNEA
             "http_chunk_size": 10485760,
+            "geo_bypass": True,
         }
-        
+
         if format_type != "audio":
             opts["merge_output_format"] = "mp4"
-        
+
+        # 2. Definir Headers Reales
         headers = {
-            "User-Agent": random.choice(user_agents),
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,video/mp4,*/*;q=0.8",
             "Accept-Language": "en-US,en;q=0.9",
             "Connection": "keep-alive",
         }
-        
+
         url_low = url.lower()
 
         if is_youtube:
@@ -139,11 +141,11 @@ def download_video():
             if use_cookies and os.path.exists(cookie_file_path):
                 opts["cookiefile"] = cookie_file_path
             
-            # Usamos solo clientes que suelen evadir el PO-Token sin necesidad de impersonate
+            # Forzamos clientes que NO piden PO Token
             opts["extractor_args"] = {
                 "youtube": {
-                    "player_client": ["tv", "web_creator", "android"],
-                    "player_skip": ["configs"],
+                    "player_client": ["tv", "ios"],
+                    "player_skip": ["web_creator", "android"],
                 }
             }
             opts["check_formats"] = False
@@ -157,10 +159,12 @@ def download_video():
             headers["Referer"] = "https://www.pinterest.com/"
 
         elif is_pornhub:
+            headers.update({
+                "Referer": "https://www.pornhub.com/",
+                "Origin": "https://www.pornhub.com"
+            })
             opts["age_limit"] = 18
-            headers["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            headers["Referer"] = "https://www.pornhub.com/"
-        
+
         opts["http_headers"] = headers
         return opts
 
