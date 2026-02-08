@@ -108,63 +108,39 @@ def download_video():
         opts = {
             "outtmpl": output_template,
             "quiet": False,
-            "no_warnings": False,  # Ver warnings para debug
+            "no_warnings": False,
             "noplaylist": True,
-            "socket_timeout": 60,
-            "retries": 3,
-            "fragment_retries": 3,
-            "skip_unavailable_fragments": True,
-            "ignoreerrors": False,
+            "socket_timeout": 30,
+            "retries": 5,
+            "fragment_retries": 5,
             "postprocessors": postprocessors,
+            
+            # --- EL SECRETO PARA EVITAR BLOQUEOS ---
+            "impersonate": "chrome",  # Esto imita el TLS/JA3 de Chrome
+            "http_chunk_size": 10485760, # Descarga en pedazos de 10MB para evitar cortes
         }
         
-        # Merge format solo si no es audio
         if format_type != "audio":
             opts["merge_output_format"] = "mp4"
-        
-        # Headers base
-        headers = {
-            "User-Agent": random.choice(user_agents),
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.9",
-            "Accept-Encoding": "gzip, deflate",
-            "Connection": "keep-alive",
-        }
-        
-        # Ajustes específicos por plataforma
+    
+        # Configuración YouTube (PO Token y Clientes)
         if is_youtube:
-            headers["Referer"] = "https://www.youtube.com/"
-            if use_cookies and os.path.exists(cookie_file_path) and os.path.getsize(cookie_file_path) > 0:
+            if use_cookies and os.path.exists(cookie_file_path):
                 opts["cookiefile"] = cookie_file_path
+            
+            # Usamos clientes que suelen pedir menos validación de PO Token
             opts["extractor_args"] = {
                 "youtube": {
-                    "player_client": ["android", "web"],
-                    "player_skip": ["webpage"]
+                    "player_client": ["tv", "ios"], 
+                    "player_skip": ["webpage", "configs"],
                 }
             }
-        elif "tiktok" in url.lower():
-            headers["Referer"] = "https://www.tiktok.com/"
-        elif "instagram" in url.lower():
-            headers["Referer"] = "https://www.instagram.com/"
-        elif "pinterest" in url.lower():
-            headers["Referer"] = "https://www.pinterest.com/"
+    
+        # Configuración Pornhub y Adultos
         elif is_pornhub:
-            # Headers específicos para Pornhub - NO usar extractor genérico
-            headers.update({
-                "Referer": "https://www.pornhub.com/",
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0",
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
-                "Accept-Language": "en-US,en;q=0.9",
-                "Sec-Fetch-Dest": "document",
-                "Sec-Fetch-Mode": "navigate",
-                "Sec-Fetch-Site": "none",
-                "Sec-Fetch-User": "?1",
-                "Upgrade-Insecure-Requests": "1",
-            })
-            # NO usar force_generic_extractor - usar extractor nativo
-            opts["age_limit"] = 18  # Indicar que es contenido para adultos
+            opts["age_limit"] = 18
+            # PH bloquea headers custom, mejor dejamos que yt-dlp use sus internos con impersonate
         
-        opts["http_headers"] = headers
         return opts
 
     info = None

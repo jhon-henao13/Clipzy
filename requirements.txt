@@ -1,3 +1,4 @@
 Flask==3.1.0
 gunicorn==23.0.0
-yt-dlp>=2025.11.12
+yt-dlp[default]
+curl_cffi>=0.7.0
