@@ -379,7 +379,7 @@ Allow: /
 Disallow: /api/download
 Disallow: /api/increment
 
-Sitemap: https://clipzy.com/sitemap.xml
+Sitemap: https://clipzy.koyeb.app/sitemap.xml
     """
     response = make_response(content)
     response.headers["Content-Type"] = "text/plain"
@@ -392,9 +392,9 @@ def sitemap():
     
     # Aquí puedes agregar más URLs si tienes páginas de términos, etc.
     pages = [
-        {'loc': 'https://clipzy.com/', 'lastmod': today, 'priority': '1.0'},
-        {'loc': 'https://clipzy.com/terms', 'lastmod': today, 'priority': '0.5'},
-        {'loc': 'https://clipzy.com/privacy', 'lastmod': today, 'priority': '0.5'},
+        {'loc': 'https://clipzy.koyeb.app/', 'lastmod': today, 'priority': '1.0'},
+        {'loc': 'https://clipzy.koyeb.app/terms', 'lastmod': today, 'priority': '0.5'},
+        {'loc': 'https://clipzy.koyeb.app/privacy', 'lastmod': today, 'priority': '0.5'},
     ]
     
     sitemap_xml = render_template('sitemap_template.xml', pages=pages)
