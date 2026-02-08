@@ -118,14 +118,13 @@ def download_video():
             "skip_unavailable_fragments": True,
             "ignoreerrors": False,
             "postprocessors": postprocessors,
-            "impersonate": "chrome",
+            # "impersonate": "chrome",  <-- ELIMINA O COMENTA ESTA LÍNEA
             "http_chunk_size": 10485760,
         }
         
         if format_type != "audio":
             opts["merge_output_format"] = "mp4"
         
-        # Headers ultra-compatibles
         headers = {
             "User-Agent": random.choice(user_agents),
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
@@ -133,7 +132,6 @@ def download_video():
             "Connection": "keep-alive",
         }
         
-        # Lógica de detección reforzada
         url_low = url.lower()
 
         if is_youtube:
@@ -141,13 +139,13 @@ def download_video():
             if use_cookies and os.path.exists(cookie_file_path):
                 opts["cookiefile"] = cookie_file_path
             
+            # Usamos solo clientes que suelen evadir el PO-Token sin necesidad de impersonate
             opts["extractor_args"] = {
                 "youtube": {
-                    "player_client": ["android_vr", "ios", "tvweb"], # Clientes con menos restricciones de PO Token
+                    "player_client": ["tv", "web_creator", "android"],
                     "player_skip": ["configs"],
                 }
             }
-            # Esto desactiva el chequeo de firmas que te está dando error
             opts["check_formats"] = False
 
 
@@ -157,14 +155,11 @@ def download_video():
             headers["Referer"] = "https://www.instagram.com/"
         elif "pinterest" in url_low:
             headers["Referer"] = "https://www.pinterest.com/"
+
         elif is_pornhub:
             opts["age_limit"] = 18
-            headers["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36"
-            headers.update({
-                "Referer": "https://www.pornhub.com/",
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-                "Sec-Fetch-Mode": "navigate",
-            })
+            headers["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            headers["Referer"] = "https://www.pornhub.com/"
         
         opts["http_headers"] = headers
         return opts
