@@ -93,8 +93,12 @@ def download_video():
         ytdl_format = "bestaudio/best"
         postprocessors = [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3", "preferredquality": "0"}]
     else:
+
         # Aseguramos que siempre intente descargar video+audio y los una en mp4
-        ytdl_format = "bestvideo+bestaudio/best"
+        #ytdl_format = "bestvideo+bestaudio/best"
+
+        ytdl_format = "bestvideo[ext=mp4]+bestaudio[m4a]/best[ext=mp4]/best"
+
         if format_type == "1080p":
             ytdl_format = "bestvideo[height<=1080]+bestaudio/best[height<=1080]/best"
         elif format_type == "720p":
@@ -125,20 +129,21 @@ def download_video():
             "ignoreerrors": False,
             "postprocessors": postprocessors,
             "geo_bypass": True,
-            "youtube_include_dash_manifest": False, # Evita formatos pesados que piden login
+            "youtube_include_dash_manifest": True, # Cámbialo a True para que vea más formatos
+            "check_formats": "cached",
             "extrinsic_batch": True, 
-            "client_id": "MWEB",
+            "client_id": "ANDROID",
             "merge_output_format": "mp4" if format_type != "audio" else None,
             "nocheckcertificate": True,
-            "wait_for_video": (5, 10),
+            "wait_for_video": None,
             "proxy": None,
         }
 
-        if any(domain in url_low for domain in ["tiktok.com", "vt.tiktok", "reddit.com", "instagram.com", "x.com", "twitter.com", "pornhub.com"]):
+        if any(domain in url_low for domain in ["tiktok.com", "vt.tiktok", "pornhub.com", "reddit.com", "instagram.com", "x.com", "twitter.com"]):
             opts["proxy"] = TOR_PROXY
-            opts["impersonate"] = "chrome-110"
-        else:
-            opts["proxy"] = None # IP directa para YouTube y otros
+
+            if "tiktok" in url_low or "instagram" in url_low:
+                opts["impersonate"] = "chrome-110"
 
 
         if format_type != "audio":
@@ -159,16 +164,19 @@ def download_video():
             headers["Referer"] = "https://www.youtube.com/"
             # if use_cookies and os.path.exists(cookie_file_path):
             #     opts["cookiefile"] = cookie_file_path
+
+            opts["check_formats"] = False
+            opts["youtube_include_dash_manifest"] = False
+
+            if os.path.exists(cookie_file_path):
+                opts["cookiefile"] = cookie_file_path
             
             opts["extractor_args"] = {
                 "youtube": {
-                    "player_client": ["ios", "android"],
-                    "player_skip": ["configs", "web"],
-                    "skip": ["dash", "hls"],
+                    "player_client": ["android", "web"], # Cambiamos ios por android/web para que acepte cookies
+                    "player_skip": ["configs"],
                 }
             }
-
-            opts["check_formats"] = False
 
 
 
@@ -179,6 +187,7 @@ def download_video():
         # Para TikTok: Forzamos el uso de impersonate (Chrome)
         if "tiktok.com" in url_low or "vt.tiktok" in url_low:
             opts.update({
+                "proxy": TOR_PROXY,
                 "impersonate": "chrome-110",
                 "extractor_args": {
                     "tiktok": {
@@ -243,7 +252,8 @@ def download_video():
     # Intentar proceso de descarga unificado
     try:
         ydl_opts = create_ydl_opts(output_path, use_cookies=True)
-        ydl_opts["format"] = "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best"
+        ydl_opts["format"] = ytdl_format
+        #ydl_opts["format"] = "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best"
         
         with YoutubeDL(ydl_opts) as ydl:
             print(f"📥 Iniciando extracción y descarga...")
