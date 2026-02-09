@@ -134,7 +134,7 @@ def download_video():
             "proxy": None,
         }
 
-        if any(domain in url_low for domain in ["reddit.com", "instagram.com", "x.com", "twitter.com", "pornhub.com"]):
+        if any(domain in url_low for domain in ["tiktok.com", "vt.tiktok", "reddit.com", "instagram.com", "x.com", "twitter.com", "pornhub.com"]):
             opts["proxy"] = TOR_PROXY
             opts["impersonate"] = "chrome-110"
         else:
@@ -157,12 +157,12 @@ def download_video():
 
         if is_youtube:
             headers["Referer"] = "https://www.youtube.com/"
-            if use_cookies and os.path.exists(cookie_file_path):
-                opts["cookiefile"] = cookie_file_path
+            # if use_cookies and os.path.exists(cookie_file_path):
+            #     opts["cookiefile"] = cookie_file_path
             
             opts["extractor_args"] = {
                 "youtube": {
-                    "player_client": ["mweb", "ios"],
+                    "player_client": ["ios", "android"],
                     "player_skip": ["configs", "web"],
                     "skip": ["dash", "hls"],
                 }
@@ -243,7 +243,7 @@ def download_video():
     # Intentar proceso de descarga unificado
     try:
         ydl_opts = create_ydl_opts(output_path, use_cookies=True)
-        ydl_opts["format"] = ytdl_format
+        ydl_opts["format"] = "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best"
         
         with YoutubeDL(ydl_opts) as ydl:
             print(f"📥 Iniciando extracción y descarga...")

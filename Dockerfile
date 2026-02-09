@@ -3,7 +3,7 @@ FROM python:3.12-slim
 ENV PYTHONUNBUFFERED=1
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Añadimos tor y ca-certificates
+# Añadimos tor, ca-certificates y NODEJS (vital para YouTube)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     curl \
@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libffi-dev \
     tor \
     ca-certificates \
+    nodejs \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
