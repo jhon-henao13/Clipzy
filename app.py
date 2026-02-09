@@ -124,18 +124,17 @@ def download_video():
             "skip_unavailable_fragments": True,
             "ignoreerrors": False,
             "postprocessors": postprocessors,
-            "http_chunk_size": 10485760,
             "geo_bypass": True,
             "youtube_include_dash_manifest": False, # Evita formatos pesados que piden login
             "extrinsic_batch": True, 
-            "client_id": "ANDROID",
+            "client_id": "MWEB",
             "merge_output_format": "mp4" if format_type != "audio" else None,
             "nocheckcertificate": True,
             "wait_for_video": (5, 10),
             "proxy": None,
         }
 
-        if any(domain in url_low for domain in ["tiktok.com", "vt.tiktok", "reddit.com", "instagram.com", "x.com", "twitter.com", "pornhub.com"]):
+        if any(domain in url_low for domain in ["reddit.com", "instagram.com", "x.com", "twitter.com", "pornhub.com"]):
             opts["proxy"] = TOR_PROXY
             opts["impersonate"] = "chrome-110"
         else:
@@ -163,8 +162,9 @@ def download_video():
             
             opts["extractor_args"] = {
                 "youtube": {
-                    "player_client": ["android", "web", "mweb"],
+                    "player_client": ["mweb", "ios"],
                     "player_skip": ["configs", "web"],
+                    "skip": ["dash", "hls"],
                 }
             }
 
@@ -179,7 +179,6 @@ def download_video():
         # Para TikTok: Forzamos el uso de impersonate (Chrome)
         if "tiktok.com" in url_low or "vt.tiktok" in url_low:
             opts.update({
-                "proxy": TOR_PROXY, # <--- Asegúrate que esté aquí también
                 "impersonate": "chrome-110",
                 "extractor_args": {
                     "tiktok": {
@@ -211,6 +210,9 @@ def download_video():
 
         elif "pinterest" in url_low:
             headers["Referer"] = "https://www.pinterest.com/"
+
+            opts["hls_prefer_native"] = True
+            opts["fixup"] = "detect_or_warn"
 
 
         elif "facebook.com" in url_low or "fb.watch" in url_low:
@@ -247,6 +249,7 @@ def download_video():
             print(f"📥 Iniciando extracción y descarga...")
             # download=True hace todo en un paso más seguro para redes sociales
             info = ydl.extract_info(url, download=True)
+            time.sleep(1)
             if info:
                 final_title = info.get("title", "Descarga")
                 thumbnail = info.get("thumbnail", "")
@@ -361,6 +364,11 @@ def increment_counter():
         except:
             count = 1
     return jsonify({"new_count": count})
+
+
+
+
+
 
 @app.route('/terms')
 def terms():

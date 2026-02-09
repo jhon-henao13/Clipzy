@@ -3,3 +3,5 @@ gunicorn==23.0.0
 pycryptodomex
 curl_cffi>=0.7.2
 certifi
+setuptools
+yt-dlp[default,impersonate]
