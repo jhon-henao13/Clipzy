@@ -144,12 +144,13 @@ def download_video():
             # Quitamos los clients que fallan sin cookies y forzamos web
             opts["extractor_args"] = {
                 "youtube": {
-                    "player_client": ["web", "mweb"],
+                    "player_client": ["mweb"],
                     "player_skip": ["configs", "js"],
                 }
             }
             # Forzamos compatibilidad máxima
             opts["format"] = "bestvideo[ext=mp4]+bestaudio[m4a]/best[ext=mp4]/best"
+            opts["impersonate"] = ImpersonateTarget('chrome', '110')
 
 
         elif is_tiktok:
@@ -159,15 +160,17 @@ def download_video():
             opts["add_header"] = ["Accept-Encoding: gzip, deflate, br"]
 
         elif is_pornhub:
-            # Pornhub odia los headers complejos y las cookies de otros sitios
+            # PH es alérgico a headers complejos
+            opts["impersonate"] = None
+            opts["age_limit"] = 18
             opts["http_headers"] = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                "Accept-Language": "en-US,en;q=0.9",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
             }
+            
             opts["cookiefile"] = None 
             opts["age_limit"] = 18
             opts["impersonate"] = None # Pornhub falla con impersonate a veces
-            
+
 
         # 3. Aplicar Cookies Globales (si existen)
         if use_cookies and os.path.exists(cookie_file_path) and os.path.getsize(cookie_file_path) > 10:
