@@ -4,4 +4,4 @@ pycryptodomex
 curl_cffi>=0.7.2
 certifi
 setuptools
-yt-dlp[default,impersonate]
+yt-dlp[default,curl-cffi] @ git+https://github.com/yt-dlp/yt-dlp.git

@@ -8,18 +8,12 @@ import uuid
 import threading
 import urllib.parse
 import re
+import shutil
 
 app = Flask(__name__)
 
 DOWNLOAD_FOLDER = os.path.join(os.getcwd(), "downloads")
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
-
-user_agents = [
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:133.0) Gecko/20100101 Firefox/133.0',
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15',
-    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
-]
 
 cookie_file_path = "youtube_cookies.txt"
 
@@ -78,168 +72,90 @@ def download_video():
     format_type = data.get("format", "best")
 
     if not url:
-        return jsonify({"error": "URL no proporcionada"}), 400
+        return jsonify({"success": False, "error": "Falta la URL"}), 400
 
     clean_old_files()
     temp_id = str(uuid.uuid4())
-    
-    # Detectar plataforma
-    is_youtube = "youtube" in url.lower() or "youtu.be" in url.lower()
-    is_pornhub = "pornhub" in url.lower()
+
+    # Detectar plataforma de forma consolidada
+    domain = url.lower()
+    is_tiktok = "tiktok" in domain
+    is_instagram = "instagram" in domain
+    is_facebook = "facebook" in domain or "fb.watch" in domain
+    is_youtube = "youtube" in domain or "youtu.be" in domain
+    is_pornhub = "pornhub" in domain
+    is_twitter = "twitter.com" in domain or "x.com" in domain
 
 
     postprocessors = []
     if format_type == "audio":
         ytdl_format = "bestaudio/best"
-        postprocessors = [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3", "preferredquality": "0"}]
+        postprocessors = [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }]
     else:
-
-        # Aseguramos que siempre intente descargar video+audio y los una en mp4
-        #ytdl_format = "bestvideo+bestaudio/best"
-
+        # Prioridad: MP4 nativo para evitar conversiones pesadas en el servidor
         ytdl_format = "bestvideo[ext=mp4]+bestaudio[m4a]/best[ext=mp4]/best"
-
         if format_type == "1080p":
-            ytdl_format = "bestvideo[height<=1080]+bestaudio/best[height<=1080]/best"
+            ytdl_format = "bestvideo[height<=1080][ext=mp4]+bestaudio[m4a]/best[ext=mp4]/best"
         elif format_type == "720p":
-            ytdl_format = "bestvideo[height<=720]+bestaudio/best[height<=720]/best"
-        elif format_type == "480p":
-            ytdl_format = "bestvideo[height<=480]+bestaudio/best[height<=480]/best"
+            ytdl_format = "bestvideo[height<=720][ext=mp4]+bestaudio[m4a]/best[ext=mp4]/best"
         
-        # Este postprocessor asegura que el archivo final sea compatible
-        postprocessors = [{"key": "FFmpegVideoConvertor", "preferedformat": "mp4"}]
+        postprocessors = [{
+            'key': 'FFmpegVideoRemuxer',
+            'preferedformat': 'mp4',
+        }]
 
 
     # Función para crear opciones - NUEVA INSTANCIA CADA VEZ
     def create_ydl_opts(output_template, use_cookies=True):
-
         url_low = url.lower()
-
-        TOR_PROXY = "socks5://127.0.0.1:9050"
-
+        
+        # 1. Configuración Base
         opts = {
             "outtmpl": output_template,
-            "quiet": False,
-            "no_warnings": False,
+            "quiet": True,
+            "no_warnings": True,
             "noplaylist": True,
-            "socket_timeout": 60,
-            "retries": 10,
-            "fragment_retries": 10,
-            "skip_unavailable_fragments": True,
+            "format": ytdl_format,
             "ignoreerrors": False,
             "postprocessors": postprocessors,
             "geo_bypass": True,
-            "youtube_include_dash_manifest": True, # Cámbialo a True para que vea más formatos
-            "check_formats": "cached",
-            "extrinsic_batch": True, 
-            "client_id": "ANDROID",
-            "merge_output_format": "mp4" if format_type != "audio" else None,
             "nocheckcertificate": True,
-            "wait_for_video": None,
-            "proxy": None,
+            "impersonate": "chrome",  # Crucial para evitar bloqueos
+            "http_headers": {
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.9",
+                "Connection": "keep-alive",
+            }
         }
 
-        if any(domain in url_low for domain in ["tiktok.com", "vt.tiktok", "pornhub.com", "reddit.com", "instagram.com", "x.com", "twitter.com"]):
-            opts["proxy"] = TOR_PROXY
-
-            if "tiktok" in url_low or "instagram" in url_low:
-                opts["impersonate"] = "chrome-110"
-
-
-        if format_type != "audio":
-            opts["merge_output_format"] = "mp4"
-
-        # 2. Definir Headers Reales
-        headers = {
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,video/mp4,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.9",
-            "Connection": "keep-alive",
-        }
-
-        if not ("tiktok.com" in url_low or "vt.tiktok" in url_low or "reddit.com" in url_low):
-            headers["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
-
-
+        # 2. Ajustes por plataforma
         if is_youtube:
-            headers["Referer"] = "https://www.youtube.com/"
-            # if use_cookies and os.path.exists(cookie_file_path):
-            #     opts["cookiefile"] = cookie_file_path
-
-            opts["check_formats"] = False
-            opts["youtube_include_dash_manifest"] = False
-
-            if os.path.exists(cookie_file_path):
-                opts["cookiefile"] = cookie_file_path
-            
             opts["extractor_args"] = {
                 "youtube": {
-                    "player_client": ["android", "web"], # Cambiamos ios por android/web para que acepte cookies
-                    "player_skip": ["configs"],
+                    "player_client": ["android", "ios"],
+                    "player_skip": ["configs", "js"],
                 }
             }
+            opts["youtube_include_dash_manifest"] = False
 
+        elif is_tiktok:
+            opts["impersonate"] = "chrome-110"
+            opts["extractor_args"] = {"tiktok": {"web_client_name": "android_v2"}}
 
-
-        if "twitter.com" in url_low or "x.com" in url_low:
-            headers["Referer"] = "https://x.com/"
-            opts["check_formats"] = False
-
-        # Para TikTok: Forzamos el uso de impersonate (Chrome)
-        if "tiktok.com" in url_low or "vt.tiktok" in url_low:
-            opts.update({
-                "proxy": TOR_PROXY,
-                "impersonate": "chrome-110",
-                "extractor_args": {
-                    "tiktok": {
-                        "web_client_name": "android_v2",
-                    }
-                },
-            })
-
-            headers.update({
-                "Referer": "https://www.tiktok.com/",
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36",
-            })
-
-
-        elif "reddit.com" in url_low:
-            opts.update({
-                "proxy": TOR_PROXY,
-                "impersonate": "chrome",
-                "format": "bestvideo+bestaudio/best",
-                "merge_output_format": "mp4",
-            })
-
-
-        elif "instagram.com" in url_low:
-            headers["Referer"] = "https://www.instagram.com/"
-            # Instagram odia los servidores; esto ayuda un poco:
-            opts["add_header"] = ["Accept-Encoding: gzip, deflate, br", "Connection: keep-alive"]
-
-
-        elif "pinterest" in url_low:
-            headers["Referer"] = "https://www.pinterest.com/"
-
-            opts["hls_prefer_native"] = True
-            opts["fixup"] = "detect_or_warn"
-
-
-        elif "facebook.com" in url_low or "fb.watch" in url_low:
-            headers["Referer"] = "https://www.facebook.com/"
-
+        elif is_instagram:
+            opts["add_header"] = ["Accept-Encoding: gzip, deflate, br"]
 
         elif is_pornhub:
-
-            if os.path.exists("pornhub_cookies.txt"):
-                opts["cookiefile"] = "pornhub_cookies.txt"
-
-            headers.update({
-                "Referer": "https://www.pornhub.com/",
-                "Origin": "https://www.pornhub.com"
-            })
             opts["age_limit"] = 18
 
-        opts["http_headers"] = headers
+        # 3. Aplicar Cookies Globales (si existen)
+        if use_cookies and os.path.exists(cookie_file_path) and os.path.getsize(cookie_file_path) > 10:
+            opts["cookiefile"] = cookie_file_path
+
         return opts
 
 
@@ -251,43 +167,34 @@ def download_video():
 
     # Intentar proceso de descarga unificado
     try:
-        ydl_opts = create_ydl_opts(output_path, use_cookies=True)
-        ydl_opts["format"] = ytdl_format
-        #ydl_opts["format"] = "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best"
+        current_opts = create_ydl_opts(output_path, use_cookies=True)
         
-        with YoutubeDL(ydl_opts) as ydl:
-            print(f"📥 Iniciando extracción y descarga...")
-            # download=True hace todo en un paso más seguro para redes sociales
+        with YoutubeDL(current_opts) as ydl:
+            print(f"📥 Procesando: {url}")
+            # Extraer y descargar en un solo paso
             info = ydl.extract_info(url, download=True)
-            time.sleep(1)
+
             if info:
-                final_title = info.get("title", "Descarga")
+                final_title = info.get("title", "video")
                 thumbnail = info.get("thumbnail", "")
                 
-            # Verificación inmediata del archivo
+            # Buscar el archivo que empieza con nuestro UUID
+            time.sleep(1) # Pequeño margen para que el SO suelte el archivo tras FFmpeg
             files = [f for f in os.listdir(DOWNLOAD_FOLDER) if f.startswith(temp_id)]
             if files:
-                file_path = os.path.join(DOWNLOAD_FOLDER, files[0])
-                if os.path.getsize(file_path) > 1024:
-                    new_name = files[0]
+                new_name = files[0]
 
     except Exception as e:
-        err = str(e)
-        print(f"❌ Error durante la descarga: {err}")
-        
-        
-        # Fallback universal para cualquier plataforma
+        print(f"❌ Error: {str(e)}")
+        # Fallback ultra-básico si el formato pedido falla
         if not new_name:
-            print("🔁 Reintentando con formato básico...")
             try:
-                ydl_opts["format"] = "best"
-                with YoutubeDL(ydl_opts) as ydl_f:
+                fallback_opts = create_ydl_opts(output_path, use_cookies=True)
+                fallback_opts["format"] = "best" # Forzar el más compatible
+                with YoutubeDL(fallback_opts) as ydl_f:
                     info = ydl_f.extract_info(url, download=True)
                     files = [f for f in os.listdir(DOWNLOAD_FOLDER) if f.startswith(temp_id)]
-                    if files: 
-                        file_path = os.path.join(DOWNLOAD_FOLDER, files[0])
-                        if os.path.getsize(file_path) > 1024:
-                            new_name = files[0]
+                    if files: new_name = files[0]
             except Exception as e2:
                 print(f"❌ Fallback fallido: {e2}")
 
@@ -424,5 +331,5 @@ def sitemap():
 
 if __name__ == '__main__':
     initialize_counter()
-    app.run(debug=False)
+    app.run(host='0.0.0.0', port=8000)
 
