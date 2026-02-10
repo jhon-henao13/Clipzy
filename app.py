@@ -141,13 +141,16 @@ def download_video():
 
         # 2. Ajustes por plataforma
         if is_youtube:
+            # Quitamos los clients que fallan sin cookies y forzamos web
             opts["extractor_args"] = {
                 "youtube": {
-                    "player_client": ["android", "ios"],
+                    "player_client": ["web", "mweb"],
                     "player_skip": ["configs", "js"],
                 }
             }
-            opts["youtube_include_dash_manifest"] = False
+            # Forzamos compatibilidad máxima
+            opts["format"] = "bestvideo[ext=mp4]+bestaudio[m4a]/best[ext=mp4]/best"
+
 
         elif is_tiktok:
             opts["extractor_args"] = {"tiktok": {"web_client_name": "android_v2"}}
@@ -156,8 +159,15 @@ def download_video():
             opts["add_header"] = ["Accept-Encoding: gzip, deflate, br"]
 
         elif is_pornhub:
+            # Pornhub odia los headers complejos y las cookies de otros sitios
+            opts["http_headers"] = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept-Language": "en-US,en;q=0.9",
+            }
+            opts["cookiefile"] = None 
             opts["age_limit"] = 18
-            opts["cookiefile"] = None
+            opts["impersonate"] = None # Pornhub falla con impersonate a veces
+            
 
         # 3. Aplicar Cookies Globales (si existen)
         if use_cookies and os.path.exists(cookie_file_path) and os.path.getsize(cookie_file_path) > 10:
@@ -196,8 +206,14 @@ def download_video():
         print(f"❌ ERROR CRÍTICO:\n{error_detallado}")
         if not new_name:
             try:
-                fallback_opts = create_ydl_opts(output_path, use_cookies=True)
-                fallback_opts["format"] = "best" # Forzar el más compatible
+                # Fallback ultra-básico: Sin cookies, sin impersonate, formato simple
+                fallback_opts = {
+                    "outtmpl": output_path,
+                    "format": "best",
+                    "ffmpeg_location": "/usr/bin/ffmpeg",
+                    "nocheckcertificate": True,
+                    "quiet": False
+                }
                 with YoutubeDL(fallback_opts) as ydl_f:
                     info = ydl_f.extract_info(url, download=True)
                     files = [f for f in os.listdir(DOWNLOAD_FOLDER) if f.startswith(temp_id)]
