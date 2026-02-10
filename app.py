@@ -9,6 +9,7 @@ import threading
 import urllib.parse
 import re
 import shutil
+import traceback
 
 app = Flask(__name__)
 
@@ -120,6 +121,7 @@ def download_video():
             "no_warnings": True,
             "noplaylist": True,
             "format": ytdl_format,
+            "ffmpeg_location": "/usr/bin/ffmpeg",
             "ignoreerrors": False,
             "postprocessors": postprocessors,
             "geo_bypass": True,
@@ -186,8 +188,8 @@ def download_video():
                 new_name = files[0]
 
     except Exception as e:
-        print(f"❌ Error: {str(e)}")
-        # Fallback ultra-básico si el formato pedido falla
+        error_detallado = traceback.format_exc()
+        print(f"❌ ERROR CRÍTICO:\n{error_detallado}")
         if not new_name:
             try:
                 fallback_opts = create_ydl_opts(output_path, use_cookies=True)

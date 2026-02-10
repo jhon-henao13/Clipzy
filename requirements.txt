@@ -1,7 +1,6 @@
 Flask==3.1.0
 gunicorn==23.0.0
+yt-dlp
+curl_cffi
 pycryptodomex
-curl_cffi>=0.7.2
 certifi
-setuptools
-yt-dlp[default,curl-cffi] @ git+https://github.com/yt-dlp/yt-dlp.git
