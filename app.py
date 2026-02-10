@@ -10,6 +10,7 @@ import urllib.parse
 import re
 import shutil
 import traceback
+from yt_dlp.networking.impersonate import ImpersonateTarget
 
 app = Flask(__name__)
 
@@ -126,7 +127,7 @@ def download_video():
             "postprocessors": postprocessors,
             "geo_bypass": True,
             "nocheckcertificate": True,
-            "impersonate": "chrome",  # Crucial para evitar bloqueos
+            "impersonate": ImpersonateTarget('chrome', '110'),
             "http_headers": {
                 "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
                 "Accept-Language": "en-US,en;q=0.9",
@@ -146,7 +147,6 @@ def download_video():
             opts["youtube_include_dash_manifest"] = False
 
         elif is_tiktok:
-            opts["impersonate"] = "chrome-110"
             opts["extractor_args"] = {"tiktok": {"web_client_name": "android_v2"}}
 
         elif is_instagram:
