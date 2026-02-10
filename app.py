@@ -98,12 +98,14 @@ def download_video():
             'preferredquality': '192',
         }]
     else:
-        # Prioridad: MP4 nativo para evitar conversiones pesadas en el servidor
-        ytdl_format = "bestvideo[ext=mp4]+bestaudio[m4a]/best[ext=mp4]/best"
+        # Simplificamos la cadena de formato para evitar el SyntaxError
+        # Esta sintaxis es mucho más robusta para YouTube, Pornhub y TikTok
         if format_type == "1080p":
-            ytdl_format = "bestvideo[height<=1080][ext=mp4]+bestaudio[m4a]/best[ext=mp4]/best"
+            ytdl_format = "bestvideo[height<=1080]+bestaudio/best"
         elif format_type == "720p":
-            ytdl_format = "bestvideo[height<=720][ext=mp4]+bestaudio[m4a]/best[ext=mp4]/best"
+            ytdl_format = "bestvideo[height<=720]+bestaudio/best"
+        else:
+            ytdl_format = "bestvideo+bestaudio/best"
         
         postprocessors = [{
             'key': 'FFmpegVideoRemuxer',
@@ -120,18 +122,19 @@ def download_video():
             "outtmpl": output_template,
             "quiet": False,
             "no_warnings": True,
+            "no_warnings": False,
             "noplaylist": True,
             "format": ytdl_format,
             "ffmpeg_location": "/usr/bin/ffmpeg",
-            "ignoreerrors": False,
+            "ignoreerrors": True,
             "postprocessors": postprocessors,
             "geo_bypass": True,
             "nocheckcertificate": True,
             "impersonate": ImpersonateTarget('chrome', '110'),
             "http_headers": {
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept": "*/*",
                 "Accept-Language": "en-US,en;q=0.9",
-                "Accept-Encoding": "identity",
                 "Connection": "keep-alive",
             }
         }
@@ -154,6 +157,7 @@ def download_video():
 
         elif is_pornhub:
             opts["age_limit"] = 18
+            opts["cookiefile"] = None
 
         # 3. Aplicar Cookies Globales (si existen)
         if use_cookies and os.path.exists(cookie_file_path) and os.path.getsize(cookie_file_path) > 10:
