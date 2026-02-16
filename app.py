@@ -131,15 +131,16 @@ def download_video():
             "noplaylist": True,
             "format": ytdl_format,
             "ffmpeg_location": "/usr/bin/ffmpeg",
-            "ignoreerrors": True,
+            "ignoreerrors": False,
             "postprocessors": postprocessors,
             "geo_bypass": True,
             "nocheckcertificate": True,
-            "impersonate": ImpersonateTarget('chrome', '110'),
+            "impersonate": ImpersonateTarget('chrome', '120'), 
             "http_headers": {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                "Accept": "*/*",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
                 "Accept-Language": "en-US,en;q=0.9",
+                "Sec-Fetch-Mode": "navigate",
                 "Connection": "keep-alive",
             }
         }
@@ -149,13 +150,13 @@ def download_video():
             # Quitamos los clients que fallan sin cookies y forzamos web
             opts["extractor_args"] = {
                 "youtube": {
-                    "player_client": ["mweb"],
-                    "player_skip": ["configs", "js"],
+                    "player_client": ["ios", "web_embedded", "mweb"],
+                    "skip": ["dash", "hls"],
                 }
             }
             # Forzamos compatibilidad máxima
             opts["format"] = "bestvideo[ext=mp4]+bestaudio/best"
-            opts["impersonate"] = ImpersonateTarget('chrome', '110')
+            opts["impersonate"] = ImpersonateTarget('chrome', '120') 
 
 
         elif is_tiktok:
@@ -169,23 +170,22 @@ def download_video():
             opts["impersonate"] = None
             opts["cookiefile"] = None  # No enviar cookies de YouTube
             opts["age_limit"] = 18
+            opts["check_formats"] = False
             # Forzamos cookies de sesión para saltar el check de edad
             opts["cookiesfrombrowser"] = None 
             opts["http_headers"] = {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-                "Accept-Language": "en-US,en;q=0.5",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
                 "Referer": "https://www.pornhub.com/",
-                "Connection": "keep-alive",
-                "check_formats": False,
             }
             # Evita que intente usar formatos que requieren login
             opts["format"] = "best"
 
 
-        # 3. Aplicar Cookies Globales (si existen)
-        if use_cookies and os.path.exists(cookie_file_path) and os.path.getsize(cookie_file_path) > 10:
-            opts["cookiefile"] = cookie_file_path
+
+        if not is_pornhub:
+            if use_cookies and os.path.exists(cookie_file_path) and os.path.getsize(cookie_file_path) > 10:
+                opts["cookiefile"] = cookie_file_path
 
         return opts
 
