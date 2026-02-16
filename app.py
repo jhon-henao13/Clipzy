@@ -17,25 +17,31 @@ app = Flask(__name__)
 DOWNLOAD_FOLDER = os.path.join(os.getcwd(), "downloads")
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
-cookie_file_path = "youtube_cookies.txt"
 
-# Cargar cookies desde env
+
+# Ruta donde se guardarán las cookies en el contenedor de Koyeb
+cookie_file_path = "/app/youtube_cookies.txt"
+
 yt_cookies_env = os.getenv("YT_COOKIES")
 if yt_cookies_env:
-    tmp_cookie_path = "/app/yt_cookies.txt"
     try:
-        with open(tmp_cookie_path, "w", encoding="utf-8") as f:
+        # Escribimos el contenido del secreto en el archivo
+        with open(cookie_file_path, "w", encoding="utf-8") as f:
             f.write(yt_cookies_env.strip())
-        cookie_file_path = tmp_cookie_path
-        print("✅ Cookies de YouTube cargadas.")
+        
+        # Verificación de seguridad
         if os.path.exists(cookie_file_path) and os.path.getsize(cookie_file_path) > 0:
-            print(f"✅ Archivo de cookies verificado: {os.path.getsize(cookie_file_path)} bytes")
+            print(f"✅ Cookies de YouTube cargadas exitosamente en {cookie_file_path} ({os.path.getsize(cookie_file_path)} bytes)")
         else:
-            print("⚠️ Archivo de cookies vacío o no encontrado.")
+            print("⚠️ El archivo de cookies se creó pero está vacío.")
     except Exception as e:
-        print(f"⚠️ Error al escribir cookies: {e}")
+        print(f"⚠️ Error crítico al escribir el archivo de cookies: {e}")
 else:
-    print("⚠️ No se encontró YT_COOKIES.")
+    # Si no hay variable de entorno, buscamos el archivo local por si acaso
+    if not os.path.exists(cookie_file_path):
+        cookie_file_path = "youtube_cookies.txt"
+    print(f"ℹ️ Usando ruta de cookies por defecto: {cookie_file_path}")
+
 
 
 def clean_filename(filename):
@@ -121,7 +127,6 @@ def download_video():
         opts = {
             "outtmpl": output_template,
             "quiet": False,
-            "no_warnings": True,
             "no_warnings": False,
             "noplaylist": True,
             "format": ytdl_format,
@@ -149,7 +154,7 @@ def download_video():
                 }
             }
             # Forzamos compatibilidad máxima
-            opts["format"] = "bestvideo[ext=mp4]+bestaudio[m4a]/best[ext=mp4]/best"
+            opts["format"] = "bestvideo[ext=mp4]+bestaudio/best"
             opts["impersonate"] = ImpersonateTarget('chrome', '110')
 
 
@@ -160,16 +165,22 @@ def download_video():
             opts["add_header"] = ["Accept-Encoding: gzip, deflate, br"]
 
         elif is_pornhub:
-            # PH es alérgico a headers complejos
+            # Pornhub necesita un manejo muy limpio
             opts["impersonate"] = None
+            opts["cookiefile"] = None  # No enviar cookies de YouTube
             opts["age_limit"] = 18
+            # Forzamos cookies de sesión para saltar el check de edad
+            opts["cookiesfrombrowser"] = None 
             opts["http_headers"] = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.5",
+                "Referer": "https://www.pornhub.com/",
+                "Connection": "keep-alive",
+                "check_formats": False,
             }
-            
-            opts["cookiefile"] = None 
-            opts["age_limit"] = 18
-            opts["impersonate"] = None # Pornhub falla con impersonate a veces
+            # Evita que intente usar formatos que requieren login
+            opts["format"] = "best"
 
 
         # 3. Aplicar Cookies Globales (si existen)
